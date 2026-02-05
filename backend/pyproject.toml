@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "brainstream"
+version = "0.1.0"
+description = "Intelligence hub for engineers to passively aggregate cloud and AI vendor updates"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "BrainStream Contributors" }
+]
+keywords = ["cloud", "ai", "news", "aggregator", "llm", "aws", "gcp", "openai", "anthropic"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    # Web Framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+
+    # Database
+    "sqlalchemy[asyncio]>=2.0.25",
+    "aiosqlite>=0.19.0",
+    "alembic>=1.13.0",
+
+    # Data Collection
+    "feedparser>=6.0.10",
+    "httpx>=0.26.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.1.0",
+
+    # Scheduling
+    "apscheduler>=3.10.4",
+
+    # CLI
+    "typer[all]>=0.9.0",
+    "rich>=13.7.0",
+
+    # Configuration
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+
+    # Utilities
+    "python-dateutil>=2.8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.26.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+[project.scripts]
+brainstream = "brainstream.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/xxx/brain-stream"
+Documentation = "https://github.com/xxx/brain-stream#readme"
+Repository = "https://github.com/xxx/brain-stream"
+Issues = "https://github.com/xxx/brain-stream/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/brainstream"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.isort]
+known-first-party = ["brainstream"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --cov=brainstream --cov-report=term-missing"

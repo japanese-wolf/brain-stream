@@ -1,0 +1,40 @@
+version: '3.8'
+
+# Development Docker Compose - uses hot reload
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brainstream-backend-dev
+    environment:
+      - BRAINSTREAM_DATA_DIR=/data
+      - BRAINSTREAM_HOST=0.0.0.0
+      - BRAINSTREAM_DEBUG=true
+      - BRAINSTREAM_SCHEDULER=false  # Disable scheduler in dev
+    volumes:
+      - ./backend/src:/app/src:ro  # Mount source for changes
+      - brainstream-data-dev:/data
+    ports:
+      - "8000:8000"
+    command: uvicorn brainstream.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:20-alpine
+    container_name: brainstream-frontend-dev
+    working_dir: /app
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Don't mount node_modules
+    ports:
+      - "3000:3000"
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+
+volumes:
+  brainstream-data-dev:
+    driver: local
