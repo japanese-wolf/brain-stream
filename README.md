@@ -1,5 +1,7 @@
 # BrainStream
 
+> **Note**: This project is currently under development and not yet released. APIs and features may change without notice.
+
 <p align="center">
   <img src="docs/logo.png" alt="BrainStream Logo" width="200">
 </p>
