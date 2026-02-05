@@ -1,5 +1,5 @@
 # BrainStream Backend Dockerfile
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app
