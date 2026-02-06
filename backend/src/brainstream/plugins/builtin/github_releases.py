@@ -63,9 +63,9 @@ class GitHubReleasesPlugin(BaseSourcePlugin):
         """Return plugin metadata."""
         return PluginInfo(
             name="github-releases",
-            display_name="GitHub Releases",
+            display_name="GitHub OSS Releases",
             vendor="GitHub",
-            description="Fetches releases from GitHub repositories via API",
+            description="Fetches releases from open source GitHub repositories via API",
             source_type=SourceType.API,
             version="1.0.0",
             supported_tech_stack=[

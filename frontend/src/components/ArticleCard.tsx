@@ -78,6 +78,15 @@ export function ArticleCard({ article }: ArticleCardProps) {
         </div>
       )}
 
+      {/* Technical impact explanation (if available) */}
+      {article.explanation && (
+        <div className="bg-amber-50 border border-amber-100 rounded p-3 mb-4">
+          <p className="text-sm text-amber-800">
+            <strong>Impact:</strong> {article.explanation}
+          </p>
+        </div>
+      )}
+
       {/* Tags */}
       {article.tags && article.tags.length > 0 && (
         <div className="flex items-center gap-2 mb-4 flex-wrap">

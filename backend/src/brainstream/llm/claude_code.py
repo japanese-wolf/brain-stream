@@ -229,8 +229,14 @@ Respond with ONLY the JSON, no other text."""
     def _extract_json(self, text: str) -> dict:
         """Extract JSON from response text.
 
-        Handles cases where the response includes markdown code blocks.
+        Handles cases where the response includes markdown code blocks,
+        leading/trailing text, or other non-JSON content.
         """
+        import re
+
+        # Strip whitespace
+        text = text.strip()
+
         # Try direct JSON parse first
         try:
             return json.loads(text)
@@ -238,21 +244,34 @@ Respond with ONLY the JSON, no other text."""
             pass
 
         # Try to extract from code blocks
-        import re
-
-        patterns = [
+        code_block_patterns = [
             r"```json\s*(.*?)\s*```",
             r"```\s*(.*?)\s*```",
-            r"\{.*\}",
         ]
 
-        for pattern in patterns:
+        for pattern in code_block_patterns:
             match = re.search(pattern, text, re.DOTALL)
             if match:
                 try:
-                    json_str = match.group(1) if "```" in pattern else match.group(0)
-                    return json.loads(json_str)
+                    return json.loads(match.group(1).strip())
                 except (json.JSONDecodeError, IndexError):
                     continue
+
+        # Try to find a JSON object by matching balanced braces
+        brace_depth = 0
+        start_idx = None
+        for i, ch in enumerate(text):
+            if ch == "{":
+                if brace_depth == 0:
+                    start_idx = i
+                brace_depth += 1
+            elif ch == "}":
+                brace_depth -= 1
+                if brace_depth == 0 and start_idx is not None:
+                    try:
+                        return json.loads(text[start_idx : i + 1])
+                    except json.JSONDecodeError:
+                        start_idx = None
+                        continue
 
         raise ValueError(f"Could not extract JSON from response: {text[:200]}")

@@ -5,6 +5,9 @@
 docs/draft.md
 docs/REQUIREMENTS.md
 
+# Operational issues
+docs/ops/issues/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -84,9 +84,10 @@ class ArticleProcessor:
                 self._apply_processing_result(article, result)
             except Exception as e:
                 logger.warning(f"LLM processing failed for {raw.external_id}: {e}")
-                # Article remains unprocessed but still usable
+                self._apply_fallback(article, raw)
         else:
-            logger.info("No LLM provider available, skipping processing")
+            logger.info("No LLM provider available, applying fallback processing")
+            self._apply_fallback(article, raw)
 
         return article
 
@@ -112,6 +113,31 @@ class ArticleProcessor:
         article.processed_at = datetime.now(UTC)
         article.llm_provider = result.provider
         article.llm_model = result.model
+
+    def _apply_fallback(self, article: Article, raw: RawArticle) -> None:
+        """Apply fallback processing when LLM is unavailable.
+
+        Generates basic summary fields from the original content so that
+        the UI can display something meaningful.
+        """
+        article.summary_title = raw.original_title
+
+        # Strip HTML tags for a cleaner summary
+        import re
+
+        clean_content = re.sub(r"<[^>]+>", "", raw.original_content)
+        # Truncate to first ~300 chars at a sentence boundary
+        if len(clean_content) > 300:
+            cut = clean_content[:300]
+            last_period = cut.rfind(".")
+            if last_period > 100:
+                clean_content = cut[: last_period + 1]
+            else:
+                clean_content = cut.rstrip() + "..."
+
+        article.summary_content = clean_content
+        article.processed_at = datetime.now(UTC)
+        article.llm_provider = "fallback"
 
     async def process_batch(
         self,
