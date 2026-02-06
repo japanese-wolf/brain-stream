@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 class ArticleBase(BaseModel):
@@ -41,6 +41,13 @@ class ArticleResponse(ArticleBase):
     # Discovery fields (Phase 1: Direction B)
     related_technologies: list[str] = Field(default_factory=list)
     tech_stack_connection: Optional[str] = None
+
+    @field_validator("related_technologies", mode="before")
+    @classmethod
+    def _coerce_related_technologies(cls, v):  # noqa: N805
+        if v is None:
+            return []
+        return v
 
     # Metadata
     tags: list[str] = Field(default_factory=list)
