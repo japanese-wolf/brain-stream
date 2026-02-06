@@ -139,6 +139,33 @@ class ArticleProcessor:
         article.processed_at = datetime.now(UTC)
         article.llm_provider = "fallback"
 
+    async def process_existing_article(self, article: Article) -> bool:
+        """Process an existing unprocessed Article in-place with LLM.
+
+        Args:
+            article: Existing Article from the database.
+
+        Returns:
+            True if successfully processed, False otherwise.
+        """
+        provider = await self.get_provider()
+        if not provider:
+            logger.info("No LLM provider available, skipping processing")
+            return False
+
+        try:
+            result = await provider.process_article(
+                title=article.original_title,
+                content=article.original_content,
+                vendor=article.vendor,
+                tech_stack=self._tech_stack if self._tech_stack else None,
+            )
+            self._apply_processing_result(article, result)
+            return True
+        except Exception as e:
+            logger.warning(f"LLM processing failed for {article.external_id}: {e}")
+            return False
+
     async def process_batch(
         self,
         raw_articles: list[RawArticle],

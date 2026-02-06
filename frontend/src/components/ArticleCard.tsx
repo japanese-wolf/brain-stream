@@ -1,5 +1,6 @@
-import { ExternalLink, Clock, Tag, TrendingUp } from 'lucide-react';
+import { ExternalLink, Clock, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import type { ArticleWithRelevance } from '../types';
+import { useProcessArticle } from '../api/hooks';
 
 interface ArticleCardProps {
   article: ArticleWithRelevance;
@@ -8,6 +9,8 @@ interface ArticleCardProps {
 export function ArticleCard({ article }: ArticleCardProps) {
   const displayTitle = article.summary_title || article.original_title;
   const displayContent = article.summary_content || article.original_content;
+  const processArticle = useProcessArticle();
+  const isProcessing = processArticle.isPending;
 
   // Format date
   const formattedDate = article.published_at
@@ -85,6 +88,18 @@ export function ArticleCard({ article }: ArticleCardProps) {
             <strong>Impact:</strong> {article.explanation}
           </p>
         </div>
+      )}
+
+      {/* AI Summarize button (for unprocessed articles) */}
+      {!article.processed_at && (
+        <button
+          onClick={() => processArticle.mutate(article.id)}
+          disabled={isProcessing}
+          className="flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 transition-colors"
+        >
+          <Sparkles className={`w-3.5 h-3.5 ${isProcessing ? 'animate-pulse' : ''}`} />
+          {isProcessing ? 'Summarizing...' : 'AI Summarize'}
+        </button>
       )}
 
       {/* Tags */}

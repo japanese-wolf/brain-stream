@@ -1,7 +1,6 @@
 """FastAPI application entry point."""
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -14,7 +13,6 @@ from brainstream import __version__
 from brainstream.api.v1.router import router as api_router
 from brainstream.core.config import settings
 from brainstream.core.database import close_db, init_db
-from brainstream.core.scheduler import setup_scheduler, start_scheduler, stop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -31,24 +29,9 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting BrainStream v{__version__}")
     await init_db()
 
-    # Start scheduler if enabled
-    enable_scheduler = os.environ.get("BRAINSTREAM_SCHEDULER", "true").lower() == "true"
-    fetch_interval = int(os.environ.get("BRAINSTREAM_FETCH_INTERVAL", "30"))
-
-    if enable_scheduler:
-        setup_scheduler(
-            fetch_interval_minutes=fetch_interval,
-            start_immediately=True,
-        )
-        start_scheduler()
-        logger.info(f"Scheduler enabled (fetch every {fetch_interval} minutes)")
-    else:
-        logger.info("Scheduler disabled")
-
     yield
 
     # Shutdown
-    stop_scheduler()
     await close_db()
     logger.info("BrainStream shutdown complete")
 
@@ -76,12 +59,9 @@ app.include_router(api_router)
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    from brainstream.core.scheduler import get_scheduler_status
-
     return {
         "status": "healthy",
         "version": __version__,
-        "scheduler": get_scheduler_status(),
     }
 
 

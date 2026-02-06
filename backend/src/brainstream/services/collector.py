@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from brainstream.core.database import get_session
@@ -221,6 +221,24 @@ class CollectorService:
             session.add(source)
             await session.commit()
             await session.refresh(source)
+        else:
+            # Update vendor/display_name if plugin definition changed
+            if source.vendor != info.vendor or source.name != info.display_name:
+                old_vendor = source.vendor
+                source.vendor = info.vendor
+                source.name = info.display_name
+                # Also update vendor on existing articles for this source
+                if old_vendor != info.vendor:
+                    await session.execute(
+                        update(Article)
+                        .where(Article.source_id == source.id)
+                        .values(vendor=info.vendor)
+                    )
+                    logger.info(
+                        f"Updated vendor for source {info.name}: "
+                        f"{old_vendor} -> {info.vendor}"
+                    )
+                await session.commit()
 
         return source
 
@@ -253,6 +271,57 @@ class CollectorService:
         new_articles = [a for a in raw_articles if a.external_id not in existing_ids]
 
         return new_articles
+
+
+@dataclass
+class ProcessingResult:
+    """Result of processing unprocessed articles."""
+
+    total: int
+    processed: int
+    failed: int
+
+
+async def process_unprocessed(
+    tech_stack: Optional[list[str]] = None,
+    limit: int = 50,
+) -> "ProcessingResult":
+    """Process existing unprocessed articles with LLM.
+
+    Args:
+        tech_stack: User's tech stack for relevance analysis.
+        limit: Max number of articles to process in one batch.
+
+    Returns:
+        ProcessingResult with counts.
+    """
+    processor = ArticleProcessor(tech_stack=tech_stack)
+
+    async with get_session() as session:
+        # Find unprocessed articles
+        query = (
+            select(Article)
+            .where(Article.processed_at.is_(None))
+            .order_by(Article.collected_at.desc())
+            .limit(limit)
+        )
+        result = await session.execute(query)
+        articles = result.scalars().all()
+
+        total = len(articles)
+        processed = 0
+        failed = 0
+
+        for article in articles:
+            success = await processor.process_existing_article(article)
+            if success:
+                processed += 1
+            else:
+                failed += 1
+
+        await session.commit()
+
+    return ProcessingResult(total=total, processed=processed, failed=failed)
 
 
 # Convenience functions

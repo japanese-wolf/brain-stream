@@ -6,6 +6,7 @@ from brainstream.services.collector import (
     CollectorService,
     collect_all,
     collect_from_source,
+    process_unprocessed,
 )
 from brainstream.services.processor import ArticleProcessor, process_article
 from brainstream.services.relevance import (
@@ -25,4 +26,5 @@ __all__ = [
     "collect_all",
     "collect_from_source",
     "process_article",
+    "process_unprocessed",
 ]

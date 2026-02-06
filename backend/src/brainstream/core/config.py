@@ -42,9 +42,6 @@ class Settings(BaseSettings):
     llm_provider: Literal["claude", "copilot"] = "claude"
     llm_timeout: int = 120  # seconds
 
-    # Scheduler
-    fetch_interval_hours: int = 6  # How often to fetch updates
-
     def get_database_path(self) -> Path:
         """Get the actual database file path."""
         if "sqlite" in self.database_url:

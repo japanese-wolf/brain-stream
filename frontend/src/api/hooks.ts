@@ -106,6 +106,18 @@ export function useVendors() {
   });
 }
 
+export function useProcessArticle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => articlesApi.process(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+}
+
 // Sources hooks
 export function useSources() {
   return useQuery({

@@ -1,5 +1,6 @@
 """Data source API endpoints."""
 
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from brainstream.core.database import get_db
 from brainstream.models.article import DataSource
 from brainstream.plugins.registry import registry
+from brainstream.services import collect_all
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
@@ -153,6 +155,75 @@ async def update_source(
     await db.refresh(source)
 
     return SourceResponse.model_validate(source)
+
+
+@router.post("/process")
+async def trigger_process(
+    limit: int = 50,
+) -> dict:
+    """Process existing unprocessed articles with LLM.
+
+    Args:
+        limit: Maximum number of articles to process.
+
+    Returns:
+        Processing results.
+    """
+    from brainstream.core.config import settings
+    from brainstream.services import process_unprocessed
+
+    config_path = settings.data_dir / "config.json"
+    tech_stack: list[str] = []
+    if config_path.exists():
+        config = json.loads(config_path.read_text())
+        tech_stack = config.get("tech_stack", [])
+
+    try:
+        result = await process_unprocessed(tech_stack=tech_stack, limit=limit)
+        return {
+            "status": "success",
+            "total": result.total,
+            "processed": result.processed,
+            "failed": result.failed,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/fetch")
+async def trigger_fetch_all() -> dict:
+    """Trigger a fetch from all enabled sources.
+
+    Returns:
+        Collection summary with results per source.
+    """
+    from brainstream.core.config import settings
+
+    tech_stack: list[str] = []
+    config_path = settings.data_dir / "config.json"
+    if config_path.exists():
+        config = json.loads(config_path.read_text())
+        tech_stack = config.get("tech_stack", [])
+
+    try:
+        summary = await collect_all(tech_stack=tech_stack)
+        return {
+            "status": "success",
+            "total_fetched": summary.total_fetched,
+            "total_new": summary.total_new,
+            "sources": [
+                {
+                    "source_name": s.source_name,
+                    "fetched": s.fetched,
+                    "new": s.new,
+                    "processed": s.processed,
+                    "errors": s.errors,
+                }
+                for s in summary.sources
+            ],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{source_id}/fetch")

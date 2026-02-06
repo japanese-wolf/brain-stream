@@ -1,7 +1,6 @@
 """CLI commands for BrainStream."""
 
 import json
-import os
 import subprocess
 import sys
 import webbrowser
@@ -22,12 +21,66 @@ app = typer.Typer(
 console = Console()
 
 
+def _get_project_root() -> Path:
+    """Get the project root directory."""
+    return Path(__file__).parent.parent.parent.parent.parent
+
+
+def _check_frontend_needs_build() -> bool:
+    """Check if frontend source files are newer than the built dist."""
+    root = _get_project_root()
+    dist_index = root / "frontend" / "dist" / "index.html"
+    if not dist_index.exists():
+        return True
+    dist_mtime = dist_index.stat().st_mtime
+    # Check source files
+    for src_file in (root / "frontend" / "src").rglob("*"):
+        if src_file.is_file() and src_file.stat().st_mtime > dist_mtime:
+            return True
+    # Check index.html
+    index_html = root / "frontend" / "index.html"
+    if index_html.exists() and index_html.stat().st_mtime > dist_mtime:
+        return True
+    return False
+
+
+@app.command()
+def update() -> None:
+    """Rebuild frontend and reinstall backend."""
+    root = _get_project_root()
+
+    # Step 1: Frontend build
+    console.print("[bold]Step 1:[/bold] Building frontend...")
+    frontend_dir = root / "frontend"
+    result = subprocess.run(
+        ["npm", "run", "build"], cwd=frontend_dir, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        console.print(f"[red]Frontend build failed:[/red]\n{result.stderr}")
+        raise typer.Exit(1)
+    console.print("[green]✓ Frontend built[/green]")
+
+    # Step 2: Backend reinstall
+    console.print("[bold]Step 2:[/bold] Reinstalling backend...")
+    backend_dir = root / "backend"
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-e", "."],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]Backend install failed:[/red]\n{result.stderr}")
+        raise typer.Exit(1)
+    console.print("[green]✓ Backend reinstalled[/green]")
+
+    console.print("\n[green]✓ Update complete[/green]")
+
+
 @app.command()
 def open(
     no_browser: bool = typer.Option(False, "--no-browser", help="Don't open browser automatically"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to run server on"),
-    no_scheduler: bool = typer.Option(False, "--no-scheduler", help="Disable background fetch scheduler"),
-    fetch_interval: int = typer.Option(30, "--fetch-interval", help="Minutes between auto-fetches"),
 ) -> None:
     """Start BrainStream and open the dashboard in your browser."""
     from brainstream.core.config import settings
@@ -37,15 +90,15 @@ def open(
         subtitle="Starting server...",
     ))
 
-    # Set environment variables for scheduler
-    os.environ["BRAINSTREAM_SCHEDULER"] = "false" if no_scheduler else "true"
-    os.environ["BRAINSTREAM_FETCH_INTERVAL"] = str(fetch_interval)
+    # Check if frontend needs rebuild
+    if _check_frontend_needs_build():
+        console.print("[yellow]⚠ Frontend source has changed since last build.[/yellow]")
+        console.print("[yellow]  Run [bold]brainstream update[/bold] to apply changes.[/yellow]\n")
 
     url = f"http://{settings.host}:{port}"
 
     console.print(f"Server: [link={url}]{url}[/link]")
     console.print(f"API Docs: [link={url}/docs]{url}/docs[/link]")
-    console.print(f"Scheduler: {'[red]disabled[/red]' if no_scheduler else f'[green]enabled[/green] (every {fetch_interval} min)'}")
 
     if not no_browser:
         console.print(f"\nOpening browser...")
