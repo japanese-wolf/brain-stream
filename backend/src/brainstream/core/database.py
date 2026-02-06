@@ -1,12 +1,16 @@
 """Database configuration and session management."""
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from brainstream.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -30,6 +34,33 @@ async_session_factory = async_sessionmaker(
 )
 
 
+async def _migrate_add_columns(conn) -> None:
+    """Add missing columns to existing tables.
+
+    SQLAlchemy's create_all() only creates new tables; it does not
+    alter existing ones.  This function inspects each table via
+    PRAGMA table_info and issues ALTER TABLE ADD COLUMN for any
+    column defined in the model but absent from the database.
+    """
+    migrations: list[tuple[str, str, str]] = [
+        # (table, column, column_def)
+        ("user_profiles", "domains", "JSON DEFAULT '[]'"),
+        ("user_profiles", "roles", "JSON DEFAULT '[]'"),
+        ("user_profiles", "goals", "JSON DEFAULT '[]'"),
+        ("articles", "related_technologies", "JSON"),
+        ("articles", "tech_stack_connection", "TEXT"),
+    ]
+
+    for table, column, col_def in migrations:
+        result = await conn.execute(text(f"PRAGMA table_info({table})"))
+        existing = {row[1] for row in result.fetchall()}
+        if column not in existing:
+            await conn.execute(
+                text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+            )
+            logger.info("Migration: added %s.%s", table, column)
+
+
 async def init_db() -> None:
     """Initialize database and create all tables."""
     # Ensure data directory exists
@@ -37,6 +68,7 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _migrate_add_columns(conn)
 
 
 async def close_db() -> None:
