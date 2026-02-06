@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 class ArticleBase(BaseModel):
@@ -37,6 +37,17 @@ class ArticleResponse(ArticleBase):
     summary_content: Optional[str] = None
     diff_description: Optional[str] = None
     explanation: Optional[str] = None
+
+    # Discovery fields (Phase 1: Direction B)
+    related_technologies: list[str] = Field(default_factory=list)
+    tech_stack_connection: Optional[str] = None
+
+    @field_validator("related_technologies", mode="before")
+    @classmethod
+    def _coerce_related_technologies(cls, v):  # noqa: N805
+        if v is None:
+            return []
+        return v
 
     # Metadata
     tags: list[str] = Field(default_factory=list)
@@ -103,10 +114,22 @@ class ArticleWithRelevanceResponse(ArticleResponse):
     relevance: Optional[RelevanceScoreResponse] = None
 
 
+class TrendingTechnologyResponse(BaseModel):
+    """A technology trending in the user's field (Phase 2: Direction A)."""
+
+    name: str = Field(..., description="Technology name")
+    count: int = Field(..., description="Number of articles where this co-occurs with tech stack")
+    related_to: list[str] = Field(default_factory=list, description="Which tech stack tags it co-occurs with")
+    sample_article_ids: list[str] = Field(default_factory=list, description="Sample article IDs (max 3)")
+
+
 class FeedResponse(BaseModel):
     """Response for the personalized feed endpoint."""
 
     items: list[ArticleWithRelevanceResponse]
+    trending_technologies: list[TrendingTechnologyResponse] = Field(
+        default_factory=list, description="Technologies trending near user's tech stack"
+    )
     total: int
     page: int
     per_page: int

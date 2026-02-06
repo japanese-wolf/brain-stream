@@ -29,6 +29,12 @@ class SummaryResult:
     explanation: Optional[str] = None
     """Technical explanation of the update's impact."""
 
+    related_technologies: list[str] = field(default_factory=list)
+    """Technologies related to this article that the user should know about."""
+
+    tech_stack_connection: Optional[str] = None
+    """How this article connects to the user's tech stack."""
+
 
 @dataclass
 class TagResult:
@@ -98,59 +104,32 @@ class BaseLLMProvider(ABC):
         ...
 
     @abstractmethod
-    async def summarize(
+    async def analyze(
         self,
         title: str,
         content: str,
         vendor: str,
-    ) -> SummaryResult:
-        """Generate a summary for an article.
+        tech_stack: Optional[list[str]] = None,
+        domains: Optional[list[str]] = None,
+        roles: Optional[list[str]] = None,
+        goals: Optional[list[str]] = None,
+    ) -> ProcessingResult:
+        """Analyze an article in a single LLM call.
+
+        Extracts summary, tags, and discovery fields in one unified prompt
+        to minimize token consumption.
 
         Args:
             title: Original article title.
             content: Original article content.
             vendor: Vendor name (e.g., 'AWS', 'GCP').
+            tech_stack: Optional user's tech stack for personalized analysis.
+            domains: Optional user's domains (e.g., ['serverless', 'mlops']).
+            roles: Optional user's roles (e.g., ['backend', 'infra']).
+            goals: Optional user's goals (e.g., ['tech-selection']).
 
         Returns:
-            SummaryResult with generated title, content, and explanations.
-        """
-        ...
-
-    @abstractmethod
-    async def extract_tags(
-        self,
-        title: str,
-        content: str,
-        vendor: str,
-    ) -> TagResult:
-        """Extract tags and categories from an article.
-
-        Args:
-            title: Article title.
-            content: Article content.
-            vendor: Vendor name.
-
-        Returns:
-            TagResult with extracted tags and services.
-        """
-        ...
-
-    @abstractmethod
-    async def analyze_relevance(
-        self,
-        title: str,
-        content: str,
-        tech_stack: list[str],
-    ) -> RelevanceResult:
-        """Analyze relevance of an article to user's tech stack.
-
-        Args:
-            title: Article title.
-            content: Article content.
-            tech_stack: User's registered tech stack.
-
-        Returns:
-            RelevanceResult with score and matched items.
+            ProcessingResult with all processing results.
         """
         ...
 
@@ -160,11 +139,13 @@ class BaseLLMProvider(ABC):
         content: str,
         vendor: str,
         tech_stack: Optional[list[str]] = None,
+        domains: Optional[list[str]] = None,
+        roles: Optional[list[str]] = None,
+        goals: Optional[list[str]] = None,
     ) -> ProcessingResult:
-        """Process an article through the full LLM pipeline.
+        """Process an article through the LLM pipeline.
 
-        This is a convenience method that runs summarize, extract_tags,
-        and optionally analyze_relevance in sequence.
+        Delegates to analyze() which performs all extraction in a single call.
 
         Args:
             title: Original article title.
@@ -179,27 +160,15 @@ class BaseLLMProvider(ABC):
 
         start_time = time.time()
 
-        # Run summarization
-        summary = await self.summarize(title, content, vendor)
-
-        # Extract tags
-        tags = await self.extract_tags(title, content, vendor)
-
-        # Analyze relevance if tech stack provided
-        relevance = None
-        if tech_stack:
-            relevance = await self.analyze_relevance(title, content, tech_stack)
-
-        processing_time = int((time.time() - start_time) * 1000)
-
-        return ProcessingResult(
-            summary=summary,
-            tags=tags,
-            relevance=relevance,
-            provider=self.name,
-            model="cli",
-            processing_time_ms=processing_time,
+        result = await self.analyze(
+            title, content, vendor, tech_stack, domains, roles, goals
         )
+
+        result.processing_time_ms = int((time.time() - start_time) * 1000)
+        result.provider = self.name
+        result.model = "cli"
+
+        return result
 
 
 class LLMError(Exception):

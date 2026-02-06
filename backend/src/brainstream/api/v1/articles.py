@@ -15,7 +15,9 @@ from brainstream.schemas.article import (
     ArticleWithRelevanceResponse,
     FeedResponse,
     RelevanceScoreResponse,
+    TrendingTechnologyResponse,
 )
+from brainstream.services.cooccurrence import CoOccurrenceService
 from brainstream.services.relevance import RelevanceService
 
 router = APIRouter(prefix="/articles", tags=["articles"])
@@ -181,8 +183,24 @@ async def get_personalized_feed(
         )
         items.append(article_response)
 
+    # Co-occurrence analysis (Phase 2: Direction A)
+    trending_technologies: list[TrendingTechnologyResponse] = []
+    if tech_stack:
+        cooccurrence_service = CoOccurrenceService(tech_stack=tech_stack)
+        trending = cooccurrence_service.analyze(list(all_articles))
+        trending_technologies = [
+            TrendingTechnologyResponse(
+                name=t.name,
+                count=t.count,
+                related_to=t.related_to,
+                sample_article_ids=t.sample_article_ids,
+            )
+            for t in trending
+        ]
+
     return FeedResponse(
         items=items,
+        trending_technologies=trending_technologies,
         total=total,
         page=page,
         per_page=per_page,
@@ -323,14 +341,19 @@ async def process_article_endpoint(
     if article.processed_at is not None:
         return ArticleResponse.model_validate(article)
 
-    # Get user profile for tech stack
+    # Get user profile for personalization
     profile_result = await db.execute(select(UserProfile).limit(1))
     profile = profile_result.scalar_one_or_none()
     tech_stack = profile.tech_stack if profile else []
 
     from brainstream.services.processor import ArticleProcessor
 
-    processor = ArticleProcessor(tech_stack=tech_stack)
+    processor = ArticleProcessor(
+        tech_stack=tech_stack,
+        domains=profile.domains if profile else [],
+        roles=profile.roles if profile else [],
+        goals=profile.goals if profile else [],
+    )
     success = await processor.process_existing_article(article)
 
     if not success:

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>Intelligence Hub for Cloud & AI Updates</strong>
+  <strong>Discover What You Didn't Know You Were Missing</strong>
 </p>
 
 <p align="center">
@@ -25,15 +25,30 @@
 
 ---
 
-## What is BrainStream?
+## Why BrainStream?
 
-BrainStream is an open-source intelligence hub that helps engineers passively aggregate updates from cloud providers and AI vendors. It automatically collects, summarizes, and prioritizes news based on your tech stack.
+You can ask an LLM anything -- but only if you know what to ask. BrainStream solves the **"unknown unknowns" problem**: it surfaces technologies and trends you didn't even know to look for.
+
+### Two Directions of Discovery
+
+BrainStream accelerates discovery in two complementary directions:
+
+**Direction A: Known -> Unknown** (Breaking filter bubbles)
+- You're an expert in Lambda, but did you know WASM runtimes are reshaping serverless?
+- Co-occurrence analysis identifies emerging technologies near your stack -- no LLM needed, accuracy grows with data.
+
+**Direction B: Unknown -> Known** (Accelerating understanding)
+- A WASM article appears in your feed -- BrainStream explains how it connects to your Lambda experience.
+- AI-powered context anchoring ties new information to what you already know.
+
+> A single user can be Direction A in one domain (expert) and Direction B in another (learner). BrainStream serves both.
 
 ### Key Features
 
-- **Multi-source aggregation**: AWS, GCP, OpenAI, Anthropic, GitHub Releases
-- **AI-powered summaries**: Uses your existing Claude Code or Copilot CLI subscription
-- **Personalized feed**: Relevance scoring based on your tech stack
+- **Discovery acceleration**: Trending technologies in your field + personalized tech connections
+- **Multi-source aggregation**: AWS, GCP, OpenAI, Anthropic, GitHub Releases, GitHub OSS
+- **AI-powered analysis**: Uses your existing Claude Code CLI subscription (on-demand, no background costs)
+- **Personalized feed**: Relevance scoring based on your tech stack, domains, roles, and goals
 - **Local-first**: Your data stays on your machine
 - **Plugin architecture**: Easy to add new data sources
 
@@ -67,27 +82,31 @@ brainstream sources       # List available data sources
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       BrainStream                            │
-├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │  Plugins     │───▶│  Processor   │───▶│   Storage    │  │
-│  │  (RSS, API)  │    │  (LLM CLI)   │    │  (SQLite)    │  │
-│  └──────────────┘    └──────────────┘    └──────────────┘  │
-│          │                                       │          │
-│          ▼                                       ▼          │
-│  ┌──────────────┐                       ┌──────────────┐   │
-│  │  Scheduler   │                       │  Dashboard   │   │
-│  │  (30 min)    │                       │  (React)     │   │
-│  └──────────────┘                       └──────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                        BrainStream                           │
+├──────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
+│  │   Plugins    │───>│  Processor   │───>│   Storage    │   │
+│  │  (RSS, API)  │    │  (LLM CLI)   │    │  (SQLite)    │   │
+│  └──────────────┘    └──────────────┘    └──────────────┘   │
+│                              │                    │          │
+│                   ┌──────────┴──────────┐         │          │
+│                   │  Co-occurrence      │         │          │
+│                   │  Analysis (Dir. A)  │         │          │
+│                   └─────────────────────┘         │          │
+│                                                   ▼          │
+│                                           ┌──────────────┐   │
+│                                           │  Dashboard   │   │
+│                                           │  (React)     │   │
+│                                           └──────────────┘   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Requirements
 
 - Python 3.11+
 - Node.js 18+ (for frontend development)
-- Claude Code CLI or GitHub Copilot CLI (optional, for AI summaries)
+- Claude Code CLI (optional, for AI analysis)
 
 ## Development
 
@@ -129,4 +148,4 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 ## Acknowledgments
 
 - Built with [FastAPI](https://fastapi.tiangolo.com/), [React](https://react.dev/), and [Tailwind CSS](https://tailwindcss.com/)
-- AI processing powered by [Claude Code](https://claude.ai/code) and [GitHub Copilot](https://github.com/features/copilot)
+- AI processing powered by [Claude Code](https://claude.ai/code)

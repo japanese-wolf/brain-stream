@@ -1,4 +1,4 @@
-import { ExternalLink, Clock, Tag, TrendingUp, Sparkles } from 'lucide-react';
+import { ExternalLink, Clock, Tag, TrendingUp, Sparkles, Link2, Compass } from 'lucide-react';
 import type { ArticleWithRelevance } from '../types';
 import { useProcessArticle } from '../api/hooks';
 
@@ -87,6 +87,32 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <p className="text-sm text-amber-800">
             <strong>Impact:</strong> {article.explanation}
           </p>
+        </div>
+      )}
+
+      {/* Tech Stack Connection (if available) */}
+      {article.tech_stack_connection && (
+        <div className="bg-green-50 border border-green-100 rounded p-3 mb-4">
+          <p className="text-sm text-green-800">
+            <Link2 className="w-3.5 h-3.5 inline mr-1" />
+            <strong>Your stack:</strong> {article.tech_stack_connection}
+          </p>
+        </div>
+      )}
+
+      {/* Related Technologies (if available) */}
+      {article.related_technologies && article.related_technologies.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <Compass className="w-3.5 h-3.5 text-purple-400" />
+          <span className="text-xs text-purple-600 font-medium">Explore:</span>
+          {article.related_technologies.map((tech, index) => (
+            <span
+              key={index}
+              className="text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200"
+            >
+              {tech}
+            </span>
+          ))}
         </div>
       )}
 
