@@ -81,6 +81,12 @@ export const articlesApi = {
   getRelevance: (id: string) => {
     return fetchApi<import('../types').RelevanceScore>(`/articles/${id}/relevance`);
   },
+
+  process: (id: string) => {
+    return fetchApi<import('../types').Article>(`/articles/${id}/process`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Profile API

@@ -293,3 +293,53 @@ async def get_article_relevance(
         matched_tags=score.matched_tags,
         matched_keywords=score.matched_keywords,
     )
+
+
+@router.post("/{article_id}/process", response_model=ArticleResponse)
+async def process_article_endpoint(
+    article_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ArticleResponse:
+    """Process a single article with LLM on demand.
+
+    Generates summary title, content, diff description, and impact explanation.
+
+    Args:
+        article_id: Article UUID
+
+    Returns:
+        Updated article with AI-generated fields
+
+    Raises:
+        HTTPException: If article not found or processing fails
+    """
+    query = select(Article).where(Article.id == article_id)
+    result = await db.execute(query)
+    article = result.scalar_one_or_none()
+
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    if article.processed_at is not None:
+        return ArticleResponse.model_validate(article)
+
+    # Get user profile for tech stack
+    profile_result = await db.execute(select(UserProfile).limit(1))
+    profile = profile_result.scalar_one_or_none()
+    tech_stack = profile.tech_stack if profile else []
+
+    from brainstream.services.processor import ArticleProcessor
+
+    processor = ArticleProcessor(tech_stack=tech_stack)
+    success = await processor.process_existing_article(article)
+
+    if not success:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM processing unavailable. Ensure Claude Code CLI is installed.",
+        )
+
+    await db.commit()
+    await db.refresh(article)
+
+    return ArticleResponse.model_validate(article)

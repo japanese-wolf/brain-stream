@@ -233,4 +233,4 @@ async def get_tech_stack_suggestions() -> dict[str, list[TechStackSuggestion]]:
 @router.get("/vendors", response_model=list[str])
 async def get_available_vendors() -> list[str]:
     """Get list of available vendors."""
-    return ["AWS", "GCP", "OpenAI", "Anthropic", "GitHub"]
+    return ["AWS", "GCP", "OpenAI", "Anthropic", "GitHub", "GitHub OSS"]

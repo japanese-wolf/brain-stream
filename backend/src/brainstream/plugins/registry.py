@@ -33,6 +33,7 @@ class PluginRegistry:
             AnthropicChangelogPlugin,
             AWSWhatsNewPlugin,
             GCPReleaseNotesPlugin,
+            GitHubPlatformPlugin,
             GitHubReleasesPlugin,
             OpenAIChangelogPlugin,
         )
@@ -43,6 +44,7 @@ class PluginRegistry:
             GCPReleaseNotesPlugin,
             OpenAIChangelogPlugin,
             AnthropicChangelogPlugin,
+            GitHubPlatformPlugin,
             GitHubReleasesPlugin,
         ]
 

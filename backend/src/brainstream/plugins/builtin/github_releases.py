@@ -63,9 +63,9 @@ class GitHubReleasesPlugin(BaseSourcePlugin):
         """Return plugin metadata."""
         return PluginInfo(
             name="github-releases",
-            display_name="GitHub Releases",
-            vendor="GitHub",
-            description="Fetches releases from GitHub repositories via API",
+            display_name="GitHub OSS Releases",
+            vendor="GitHub OSS",
+            description="Fetches releases from open source GitHub repositories via API",
             source_type=SourceType.API,
             version="1.0.0",
             supported_tech_stack=[
@@ -170,7 +170,7 @@ class GitHubReleasesPlugin(BaseSourcePlugin):
                     original_title=title,
                     original_content=content[:5000],  # Limit content length
                     published_at=published_at,
-                    vendor="GitHub",
+                    vendor="GitHub OSS",
                     categories=categories,
                     metadata={
                         "source": "github-releases",

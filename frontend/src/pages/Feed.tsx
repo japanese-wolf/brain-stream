@@ -26,7 +26,7 @@ export function Feed() {
     refetch();
   };
 
-  const vendors = ['', 'AWS', 'GCP', 'OpenAI', 'Anthropic', 'GitHub'];
+  const vendors = ['', 'AWS', 'GCP', 'OpenAI', 'Anthropic', 'GitHub', 'GitHub OSS'];
 
   if (error) {
     return (

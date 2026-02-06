@@ -43,9 +43,6 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "lxml>=5.1.0",
 
-    # Scheduling
-    "apscheduler>=3.10.4",
-
     # CLI
     "typer[all]>=0.9.0",
     "rich>=13.7.0",

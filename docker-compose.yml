@@ -10,8 +10,6 @@ services:
       - BRAINSTREAM_DATA_DIR=/data
       - BRAINSTREAM_HOST=0.0.0.0
       - BRAINSTREAM_DEBUG=false
-      - BRAINSTREAM_SCHEDULER=true
-      - BRAINSTREAM_FETCH_INTERVAL=30
     volumes:
       - brainstream-data:/data
     ports:
