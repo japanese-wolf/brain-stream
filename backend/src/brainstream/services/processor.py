@@ -22,15 +22,24 @@ class ArticleProcessor:
         self,
         provider: Optional[BaseLLMProvider] = None,
         tech_stack: Optional[list[str]] = None,
+        domains: Optional[list[str]] = None,
+        roles: Optional[list[str]] = None,
+        goals: Optional[list[str]] = None,
     ):
         """Initialize the processor.
 
         Args:
             provider: LLM provider to use. If None, auto-detects available provider.
             tech_stack: User's tech stack for relevance analysis.
+            domains: User's domains of expertise/interest.
+            roles: User's engineering roles.
+            goals: User's current goals.
         """
         self._provider = provider
         self._tech_stack = tech_stack or []
+        self._domains = domains or []
+        self._roles = roles or []
+        self._goals = goals or []
 
     async def get_provider(self) -> Optional[BaseLLMProvider]:
         """Get the LLM provider, auto-detecting if needed."""
@@ -80,6 +89,9 @@ class ArticleProcessor:
                     content=raw.original_content,
                     vendor=raw.vendor,
                     tech_stack=self._tech_stack if self._tech_stack else None,
+                    domains=self._domains if self._domains else None,
+                    roles=self._roles if self._roles else None,
+                    goals=self._goals if self._goals else None,
                 )
                 self._apply_processing_result(article, result)
             except Exception as e:
@@ -108,6 +120,10 @@ class ArticleProcessor:
         all_tags.update(result.tags.tags)
         all_tags.update(result.tags.vendor_services)
         article.tags = list(all_tags)
+
+        # Apply discovery fields (Phase 1: Direction B)
+        article.related_technologies = result.summary.related_technologies
+        article.tech_stack_connection = result.summary.tech_stack_connection
 
         # Mark as processed
         article.processed_at = datetime.now(UTC)
@@ -159,6 +175,9 @@ class ArticleProcessor:
                 content=article.original_content,
                 vendor=article.vendor,
                 tech_stack=self._tech_stack if self._tech_stack else None,
+                domains=self._domains if self._domains else None,
+                roles=self._roles if self._roles else None,
+                goals=self._goals if self._goals else None,
             )
             self._apply_processing_result(article, result)
             return True

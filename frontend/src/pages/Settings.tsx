@@ -8,6 +8,79 @@ import {
   useAddTechStack,
   useRemoveTechStackItem,
 } from '../api/hooks';
+import type { TechStackSuggestion } from '../types';
+
+const COLOR_MAP: Record<string, { bg: string; text: string; border: string; selected: string }> = {
+  purple: { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200', selected: 'bg-purple-600' },
+  emerald: { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200', selected: 'bg-emerald-600' },
+  amber: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', selected: 'bg-amber-600' },
+};
+
+function ProfileTagSection({
+  title,
+  description,
+  items,
+  suggestions,
+  onToggle,
+  colorClass,
+}: {
+  title: string;
+  description: string;
+  items: string[];
+  suggestions?: TechStackSuggestion[];
+  onToggle: (name: string) => void;
+  colorClass: string;
+}) {
+  const colors = COLOR_MAP[colorClass] || COLOR_MAP.purple;
+
+  return (
+    <section className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
+      <p className="text-sm text-gray-600 mb-4">{description}</p>
+
+      {/* Current selections */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {items.map((item) => (
+            <span
+              key={item}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 ${colors.bg} ${colors.text} rounded-full text-sm font-medium`}
+            >
+              {item}
+              <button onClick={() => onToggle(item)} className="hover:opacity-70">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Suggestions */}
+      {suggestions && (
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((s) => {
+            const isSelected = items.includes(s.name);
+            return (
+              <button
+                key={s.name}
+                onClick={() => onToggle(s.name)}
+                title={s.description}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  isSelected
+                    ? `${colors.selected} text-white border-transparent`
+                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                {isSelected && <Check className="w-3 h-3 inline mr-1" />}
+                {s.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function Settings() {
   const { data: profile, isLoading, error } = useProfile();
@@ -142,7 +215,7 @@ export function Settings() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Suggestions</h3>
             <div className="space-y-4">
-              {Object.entries(suggestions).map(([category, items]) => (
+              {Object.entries(suggestions).filter(([category]) => !['domains', 'roles', 'goals'].includes(category)).map(([category, items]) => (
                 <div key={category}>
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
                     {category}
@@ -220,6 +293,54 @@ export function Settings() {
           )}
         </button>
       </section>
+
+      {/* Domains Section */}
+      <ProfileTagSection
+        title="Domains"
+        description="Select your areas of expertise or interest. This helps personalize article analysis."
+        items={profile?.domains || []}
+        suggestions={suggestions?.domains}
+        onToggle={(name) => {
+          const current = profile?.domains || [];
+          const updated = current.includes(name)
+            ? current.filter((d) => d !== name)
+            : [...current, name];
+          updateProfile.mutate({ domains: updated });
+        }}
+        colorClass="purple"
+      />
+
+      {/* Roles Section */}
+      <ProfileTagSection
+        title="Roles"
+        description="Select your engineering roles. Articles will be analyzed with your role context."
+        items={profile?.roles || []}
+        suggestions={suggestions?.roles}
+        onToggle={(name) => {
+          const current = profile?.roles || [];
+          const updated = current.includes(name)
+            ? current.filter((r) => r !== name)
+            : [...current, name];
+          updateProfile.mutate({ roles: updated });
+        }}
+        colorClass="emerald"
+      />
+
+      {/* Goals Section */}
+      <ProfileTagSection
+        title="Goals"
+        description="Select your current goals. Article relevance and insights will be tailored to these."
+        items={profile?.goals || []}
+        suggestions={suggestions?.goals}
+        onToggle={(name) => {
+          const current = profile?.goals || [];
+          const updated = current.includes(name)
+            ? current.filter((g) => g !== name)
+            : [...current, name];
+          updateProfile.mutate({ goals: updated });
+        }}
+        colorClass="amber"
+      />
 
       {/* LLM Provider Section */}
       <section className="bg-white rounded-lg border border-gray-200 p-6">

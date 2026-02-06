@@ -29,6 +29,9 @@ class ProfileResponse(BaseModel):
     id: str
     tech_stack: list[str]
     preferred_vendors: list[str]
+    domains: list[str] = Field(default_factory=list)
+    roles: list[str] = Field(default_factory=list)
+    goals: list[str] = Field(default_factory=list)
     llm_provider: str
     created_at: str
     updated_at: str
@@ -42,6 +45,15 @@ class ProfileUpdateRequest(BaseModel):
     )
     preferred_vendors: Optional[list[str]] = Field(
         None, description="List of preferred vendors (e.g., ['AWS', 'GCP'])"
+    )
+    domains: Optional[list[str]] = Field(
+        None, description="Areas of expertise/interest (e.g., ['serverless', 'mlops'])"
+    )
+    roles: Optional[list[str]] = Field(
+        None, description="Engineering roles (e.g., ['backend', 'infra'])"
+    )
+    goals: Optional[list[str]] = Field(
+        None, description="Current goals (e.g., ['tech-selection', 'cost-reduction'])"
     )
     llm_provider: Optional[str] = Field(
         None, description="LLM provider to use ('claude', 'copilot')"
@@ -99,7 +111,54 @@ TECH_STACK_SUGGESTIONS = {
         TechStackSuggestion(name="route53", category="networking", description="AWS Route 53 DNS"),
         TechStackSuggestion(name="cloud-cdn", category="networking", description="GCP Cloud CDN"),
     ],
+    "domains": [
+        TechStackSuggestion(name="serverless", category="domains", description="Serverless architecture and FaaS"),
+        TechStackSuggestion(name="microservices", category="domains", description="Microservices architecture"),
+        TechStackSuggestion(name="data-engineering", category="domains", description="Data pipelines and processing"),
+        TechStackSuggestion(name="mlops", category="domains", description="ML operations and model deployment"),
+        TechStackSuggestion(name="devops", category="domains", description="CI/CD and infrastructure automation"),
+        TechStackSuggestion(name="security", category="domains", description="Application and cloud security"),
+        TechStackSuggestion(name="frontend", category="domains", description="Frontend and UI development"),
+        TechStackSuggestion(name="mobile", category="domains", description="Mobile application development"),
+        TechStackSuggestion(name="iot", category="domains", description="Internet of Things"),
+        TechStackSuggestion(name="edge-computing", category="domains", description="Edge and distributed computing"),
+    ],
+    "roles": [
+        TechStackSuggestion(name="backend", category="roles", description="Backend/server-side development"),
+        TechStackSuggestion(name="frontend", category="roles", description="Frontend/client-side development"),
+        TechStackSuggestion(name="fullstack", category="roles", description="Full-stack development"),
+        TechStackSuggestion(name="infra", category="roles", description="Infrastructure and platform engineering"),
+        TechStackSuggestion(name="sre", category="roles", description="Site reliability engineering"),
+        TechStackSuggestion(name="data-engineer", category="roles", description="Data engineering and analytics"),
+        TechStackSuggestion(name="ml-engineer", category="roles", description="Machine learning engineering"),
+        TechStackSuggestion(name="architect", category="roles", description="Software/solutions architecture"),
+        TechStackSuggestion(name="devops-engineer", category="roles", description="DevOps and release engineering"),
+    ],
+    "goals": [
+        TechStackSuggestion(name="tech-selection", category="goals", description="Evaluating technologies for new projects"),
+        TechStackSuggestion(name="system-optimization", category="goals", description="Optimizing existing systems"),
+        TechStackSuggestion(name="migration", category="goals", description="Migrating between platforms or services"),
+        TechStackSuggestion(name="cost-reduction", category="goals", description="Reducing infrastructure costs"),
+        TechStackSuggestion(name="performance", category="goals", description="Improving application performance"),
+        TechStackSuggestion(name="security-hardening", category="goals", description="Strengthening security posture"),
+        TechStackSuggestion(name="team-scaling", category="goals", description="Scaling engineering team and processes"),
+    ],
 }
+
+
+def _to_response(profile: UserProfile) -> ProfileResponse:
+    """Convert a UserProfile model to ProfileResponse."""
+    return ProfileResponse(
+        id=profile.id,
+        tech_stack=profile.tech_stack,
+        preferred_vendors=profile.preferred_vendors,
+        domains=profile.domains or [],
+        roles=profile.roles or [],
+        goals=profile.goals or [],
+        llm_provider=profile.llm_provider,
+        created_at=profile.created_at.isoformat(),
+        updated_at=profile.updated_at.isoformat(),
+    )
 
 
 async def get_or_create_profile(session: AsyncSession) -> UserProfile:
@@ -127,15 +186,7 @@ async def get_or_create_profile(session: AsyncSession) -> UserProfile:
 async def get_profile(session: AsyncSession = Depends(get_db)) -> ProfileResponse:
     """Get the current user profile."""
     profile = await get_or_create_profile(session)
-
-    return ProfileResponse(
-        id=profile.id,
-        tech_stack=profile.tech_stack,
-        preferred_vendors=profile.preferred_vendors,
-        llm_provider=profile.llm_provider,
-        created_at=profile.created_at.isoformat(),
-        updated_at=profile.updated_at.isoformat(),
-    )
+    return _to_response(profile)
 
 
 @router.put("", response_model=ProfileResponse)
@@ -152,6 +203,15 @@ async def update_profile(
     if request.preferred_vendors is not None:
         profile.preferred_vendors = request.preferred_vendors
 
+    if request.domains is not None:
+        profile.domains = request.domains
+
+    if request.roles is not None:
+        profile.roles = request.roles
+
+    if request.goals is not None:
+        profile.goals = request.goals
+
     if request.llm_provider is not None:
         if request.llm_provider not in ["claude", "copilot", "none"]:
             raise HTTPException(
@@ -162,15 +222,7 @@ async def update_profile(
 
     await session.commit()
     await session.refresh(profile)
-
-    return ProfileResponse(
-        id=profile.id,
-        tech_stack=profile.tech_stack,
-        preferred_vendors=profile.preferred_vendors,
-        llm_provider=profile.llm_provider,
-        created_at=profile.created_at.isoformat(),
-        updated_at=profile.updated_at.isoformat(),
-    )
+    return _to_response(profile)
 
 
 @router.post("/tech-stack", response_model=ProfileResponse)
@@ -189,15 +241,7 @@ async def add_tech_stack(
     profile.tech_stack = list(current_stack)
     await session.commit()
     await session.refresh(profile)
-
-    return ProfileResponse(
-        id=profile.id,
-        tech_stack=profile.tech_stack,
-        preferred_vendors=profile.preferred_vendors,
-        llm_provider=profile.llm_provider,
-        created_at=profile.created_at.isoformat(),
-        updated_at=profile.updated_at.isoformat(),
-    )
+    return _to_response(profile)
 
 
 @router.delete("/tech-stack/{item}", response_model=ProfileResponse)
@@ -213,15 +257,7 @@ async def remove_tech_stack_item(
 
     await session.commit()
     await session.refresh(profile)
-
-    return ProfileResponse(
-        id=profile.id,
-        tech_stack=profile.tech_stack,
-        preferred_vendors=profile.preferred_vendors,
-        llm_provider=profile.llm_provider,
-        created_at=profile.created_at.isoformat(),
-        updated_at=profile.updated_at.isoformat(),
-    )
+    return _to_response(profile)
 
 
 @router.get("/suggestions", response_model=dict[str, list[TechStackSuggestion]])

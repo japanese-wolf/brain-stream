@@ -9,7 +9,7 @@ from brainstream.llm.base import (
     BaseLLMProvider,
     CLINotFoundError,
     ProcessingError,
-    RelevanceResult,
+    ProcessingResult,
     SummaryResult,
     TagResult,
     TimeoutError,
@@ -99,32 +99,60 @@ class ClaudeCodeProvider(BaseLLMProvider):
                 raise
             raise ProcessingError(self.name, f"Unexpected error: {e}")
 
-    async def summarize(
+    async def analyze(
         self,
         title: str,
         content: str,
         vendor: str,
-    ) -> SummaryResult:
-        """Generate a summary using Claude Code CLI."""
-        prompt = f"""You are a technical writer summarizing cloud/AI vendor announcements for engineers.
+        tech_stack: Optional[list[str]] = None,
+        domains: Optional[list[str]] = None,
+        roles: Optional[list[str]] = None,
+        goals: Optional[list[str]] = None,
+    ) -> ProcessingResult:
+        """Analyze an article in a single unified LLM call."""
+        tech_stack_str = ", ".join(tech_stack) if tech_stack else ""
+        has_profile = bool(tech_stack_str or domains or roles or goals)
 
-Analyze this {vendor} announcement and provide:
-1. A concise summary title (max 100 chars)
-2. A brief summary (2-3 sentences)
-3. What specifically changed or was added
-4. Technical impact for developers
+        # Build personalization section
+        personalization = ""
+        if has_profile:
+            profile_lines = []
+            if tech_stack_str:
+                profile_lines.append(f"Tech stack: {tech_stack_str}")
+            if domains:
+                profile_lines.append(f"Domains: {', '.join(domains)}")
+            if roles:
+                profile_lines.append(f"Roles: {', '.join(roles)}")
+            if goals:
+                profile_lines.append(f"Goals: {', '.join(goals)}")
 
-Original Title: {title}
+            profile_context = "\n".join(profile_lines)
+            personalization = f"""
+Engineer profile:
+{profile_context}
+
+In addition to the standard analysis, provide:
+- "related_technologies": Technologies related to this announcement that the engineer should explore, even if outside their current stack. Focus on technologies that are gaining relevance in this context.
+- "tech_stack_connection": A concrete explanation of how this announcement connects to the engineer's profile. Be specific about implications for their domains, roles, and goals."""
+
+        prompt = f"""You are a technical intelligence analyst helping engineers discover technology trends and understand vendor announcements.
+
+Analyze this {vendor} announcement and provide a comprehensive analysis.
+
+Title: {title}
 
 Content:
 {content[:3000]}
+{personalization}
 
 Respond in this exact JSON format:
 {{
-    "title": "concise summary title",
+    "title": "concise summary title (max 100 chars)",
     "content": "2-3 sentence summary",
-    "diff_description": "what changed",
-    "explanation": "technical impact"
+    "diff_description": "what specifically changed or was added",
+    "explanation": "technical impact for developers",
+    "tags": ["general category tags like compute, database, security, ai"],
+    "vendor_services": ["specific {vendor} services mentioned"]{', "related_technologies": ["tech1", "tech2"], "tech_stack_connection": "how this connects to the engineers profile"' if has_profile else ''}
 }}
 
 Respond with ONLY the JSON, no other text."""
@@ -132,99 +160,32 @@ Respond with ONLY the JSON, no other text."""
         response = await self._run_claude(prompt)
 
         try:
-            # Try to parse JSON from response
             data = self._extract_json(response)
-            return SummaryResult(
+
+            summary = SummaryResult(
                 title=data.get("title", title),
                 content=data.get("content", content[:200]),
                 diff_description=data.get("diff_description"),
                 explanation=data.get("explanation"),
-            )
-        except Exception:
-            # Fallback: use response as content
-            return SummaryResult(
-                title=title,
-                content=response[:500] if response else content[:200],
+                related_technologies=data.get("related_technologies", []),
+                tech_stack_connection=data.get("tech_stack_connection"),
             )
 
-    async def extract_tags(
-        self,
-        title: str,
-        content: str,
-        vendor: str,
-    ) -> TagResult:
-        """Extract tags using Claude Code CLI."""
-        prompt = f"""Analyze this {vendor} announcement and extract:
-1. General tags/categories (e.g., "compute", "database", "security", "ai")
-2. Specific {vendor} services mentioned (e.g., "Lambda", "S3", "EC2")
-
-Title: {title}
-
-Content:
-{content[:2000]}
-
-Respond in this exact JSON format:
-{{
-    "tags": ["tag1", "tag2"],
-    "vendor_services": ["Service1", "Service2"]
-}}
-
-Respond with ONLY the JSON, no other text."""
-
-        response = await self._run_claude(prompt)
-
-        try:
-            data = self._extract_json(response)
-            return TagResult(
+            tags = TagResult(
                 tags=data.get("tags", []),
                 vendor_services=data.get("vendor_services", []),
             )
+
+            return ProcessingResult(summary=summary, tags=tags)
+
         except Exception:
-            return TagResult(tags=[vendor.lower()])
-
-    async def analyze_relevance(
-        self,
-        title: str,
-        content: str,
-        tech_stack: list[str],
-    ) -> RelevanceResult:
-        """Analyze relevance to user's tech stack using Claude Code CLI."""
-        tech_stack_str = ", ".join(tech_stack)
-
-        prompt = f"""Analyze how relevant this announcement is to a developer using: {tech_stack_str}
-
-Title: {title}
-
-Content:
-{content[:2000]}
-
-Respond in this exact JSON format:
-{{
-    "score": 0.0 to 1.0,
-    "matched_tech_stack": ["matching", "items"],
-    "reason": "brief explanation"
-}}
-
-Score guidelines:
-- 1.0: Directly about a technology in the stack
-- 0.7-0.9: Related feature or integration
-- 0.4-0.6: Same vendor, different service
-- 0.1-0.3: Tangentially related
-- 0.0: Not relevant
-
-Respond with ONLY the JSON, no other text."""
-
-        response = await self._run_claude(prompt)
-
-        try:
-            data = self._extract_json(response)
-            return RelevanceResult(
-                score=float(data.get("score", 0.5)),
-                matched_tech_stack=data.get("matched_tech_stack", []),
-                reason=data.get("reason", ""),
+            # Fallback: minimal result
+            summary = SummaryResult(
+                title=title,
+                content=response[:500] if response else content[:200],
             )
-        except Exception:
-            return RelevanceResult(score=0.5, reason="Unable to analyze")
+            tags = TagResult(tags=[vendor.lower()])
+            return ProcessingResult(summary=summary, tags=tags)
 
     def _extract_json(self, text: str) -> dict:
         """Extract JSON from response text.

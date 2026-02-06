@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw, Filter, AlertCircle } from 'lucide-react';
+import { RefreshCw, Filter, AlertCircle, Compass } from 'lucide-react';
 import { useFeed, useProfile, useFetchSources } from '../api/hooks';
 import { ArticleCard } from '../components/ArticleCard';
 
@@ -126,6 +126,36 @@ export function Feed() {
           )}
         </div>
       </div>
+
+      {/* Trending Technologies (Phase 2: Direction A) */}
+      {feed && feed.trending_technologies && feed.trending_technologies.length > 0 && (
+        <div className="mb-6 bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Compass className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-semibold text-indigo-900">
+              Trending in Your Field
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {feed.trending_technologies.map((tech) => (
+              <div
+                key={tech.name}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-indigo-200 rounded-full text-sm"
+              >
+                <span className="font-medium text-indigo-800">{tech.name}</span>
+                <span className="text-xs text-indigo-500">
+                  {tech.count} articles
+                </span>
+                {tech.related_to.length > 0 && (
+                  <span className="text-xs text-gray-400" title={`Related to: ${tech.related_to.join(', ')}`}>
+                    via {tech.related_to[0]}{tech.related_to.length > 1 ? ` +${tech.related_to.length - 1}` : ''}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (

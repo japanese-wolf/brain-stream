@@ -44,6 +44,10 @@ class Article(Base):
     diff_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Discovery fields (Phase 1: Direction B)
+    related_technologies: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    tech_stack_connection: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     # Categorization
     vendor: Mapped[str] = mapped_column(String(100), index=True)
     tags: Mapped[dict] = mapped_column(JSON, default=list)
@@ -140,6 +144,11 @@ class UserProfile(Base):
     # Tech stack preferences
     tech_stack: Mapped[list] = mapped_column(JSON, default=list)
     preferred_vendors: Mapped[list] = mapped_column(JSON, default=list)
+
+    # Extended profile (Phase 3)
+    domains: Mapped[list] = mapped_column(JSON, default=list)
+    roles: Mapped[list] = mapped_column(JSON, default=list)
+    goals: Mapped[list] = mapped_column(JSON, default=list)
 
     # LLM settings
     llm_provider: Mapped[str] = mapped_column(String(50), default="claude")
