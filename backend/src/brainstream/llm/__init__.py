@@ -7,9 +7,6 @@ from brainstream.llm.base import (
     LLMProvider,
     ProcessingError,
     ProcessingResult,
-    RelevanceResult,
-    SummaryResult,
-    TagResult,
     TimeoutError,
 )
 from brainstream.llm.claude_code import ClaudeCodeProvider
@@ -23,9 +20,6 @@ __all__ = [
     "ProcessingError",
     "TimeoutError",
     "LLMProvider",
-    "SummaryResult",
-    "TagResult",
-    "RelevanceResult",
     "ProcessingResult",
     "llm_registry",
 ]

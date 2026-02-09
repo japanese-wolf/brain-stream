@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Newspaper, Settings, Zap } from 'lucide-react';
+import { Newspaper, Zap } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,7 +10,6 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { path: '/', icon: Newspaper, label: 'Feed' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (

@@ -6,11 +6,7 @@ from brainstream.llm.base import BaseLLMProvider, LLMProvider
 
 
 class LLMRegistry:
-    """Registry for LLM providers.
-
-    Manages available LLM providers and provides a way to get
-    the appropriate provider based on configuration.
-    """
+    """Registry for LLM providers."""
 
     _instance: Optional["LLMRegistry"] = None
     _providers: dict[str, type[BaseLLMProvider]]
@@ -23,7 +19,6 @@ class LLMRegistry:
         return cls._instance
 
     def _load_providers(self) -> None:
-        """Load built-in providers."""
         from brainstream.llm.claude_code import ClaudeCodeProvider
 
         self._providers = {
@@ -31,32 +26,15 @@ class LLMRegistry:
         }
 
     def get(self, provider_name: str) -> Optional[BaseLLMProvider]:
-        """Get a provider instance by name.
-
-        Args:
-            provider_name: Provider name (e.g., 'claude', 'copilot').
-
-        Returns:
-            Provider instance or None if not found.
-        """
         provider_cls = self._providers.get(provider_name)
         if provider_cls:
             return provider_cls()
         return None
 
     def list_providers(self) -> list[str]:
-        """List available provider names."""
         return list(self._providers.keys())
 
     async def get_available(self) -> Optional[BaseLLMProvider]:
-        """Get the first available provider.
-
-        Checks each registered provider and returns the first one
-        that is available (CLI installed).
-
-        Returns:
-            First available provider or None.
-        """
         for name in self._providers:
             provider = self.get(name)
             if provider and await provider.is_available():
@@ -64,5 +42,4 @@ class LLMRegistry:
         return None
 
 
-# Global registry instance
 llm_registry = LLMRegistry()

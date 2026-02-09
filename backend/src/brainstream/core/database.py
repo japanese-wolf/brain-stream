@@ -1,111 +1,131 @@
-"""Database configuration and session management."""
+"""SQLite state database for Thompson Sampling and action logs."""
 
 import logging
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+import sqlite3
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from pathlib import Path
 
 from brainstream.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+_DB_SCHEMA = """
+CREATE TABLE IF NOT EXISTS cluster_arms (
+    cluster_id INTEGER PRIMARY KEY,
+    alpha REAL DEFAULT 1.0,
+    beta REAL DEFAULT 1.0,
+    article_count INTEGER DEFAULT 0,
+    label TEXT DEFAULT '',
+    updated_at TEXT
+);
 
-class Base(DeclarativeBase):
-    """Base class for all database models."""
-
-    pass
-
-
-# Create async engine
-engine = create_async_engine(
-    settings.database_url.replace("~", str(settings.data_dir.parent)),
-    echo=settings.debug,
-    future=True,
-)
-
-# Session factory
-async_session_factory = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+CREATE TABLE IF NOT EXISTS action_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    cluster_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+"""
 
 
-async def _migrate_add_columns(conn) -> None:
-    """Add missing columns to existing tables.
-
-    SQLAlchemy's create_all() only creates new tables; it does not
-    alter existing ones.  This function inspects each table via
-    PRAGMA table_info and issues ALTER TABLE ADD COLUMN for any
-    column defined in the model but absent from the database.
-    """
-    migrations: list[tuple[str, str, str]] = [
-        # (table, column, column_def)
-        ("user_profiles", "domains", "JSON DEFAULT '[]'"),
-        ("user_profiles", "roles", "JSON DEFAULT '[]'"),
-        ("user_profiles", "goals", "JSON DEFAULT '[]'"),
-        ("articles", "related_technologies", "JSON"),
-        ("articles", "tech_stack_connection", "TEXT"),
-    ]
-
-    for table, column, col_def in migrations:
-        result = await conn.execute(text(f"PRAGMA table_info({table})"))
-        existing = {row[1] for row in result.fetchall()}
-        if column not in existing:
-            await conn.execute(
-                text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
-            )
-            logger.info("Migration: added %s.%s", table, column)
-
-
-async def init_db() -> None:
-    """Initialize database and create all tables."""
-    # Ensure data directory exists
+def _get_db_path() -> Path:
     settings.ensure_data_dir()
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        await _migrate_add_columns(conn)
+    return settings.state_db_path
 
 
-async def close_db() -> None:
-    """Close database connections."""
-    await engine.dispose()
+@contextmanager
+def get_connection():
+    """Get a SQLite connection with context manager."""
+    db_path = _get_db_path()
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
-@asynccontextmanager
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get an async database session.
-
-    Usage:
-        async with get_session() as session:
-            # Use session
-            ...
-    """
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+def init_db() -> None:
+    """Initialize the state database schema."""
+    with get_connection() as conn:
+        conn.executescript(_DB_SCHEMA)
+    logger.info("State database initialized at %s", _get_db_path())
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency for database session.
+def get_cluster_arm(cluster_id: int) -> dict | None:
+    """Get Thompson Sampling arm for a cluster."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM cluster_arms WHERE cluster_id = ?", (cluster_id,)
+        ).fetchone()
+        return dict(row) if row else None
 
-    Usage:
-        @app.get("/items")
-        async def get_items(db: AsyncSession = Depends(get_db)):
-            ...
-    """
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+
+def get_all_cluster_arms() -> list[dict]:
+    """Get all Thompson Sampling arms."""
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM cluster_arms ORDER BY cluster_id").fetchall()
+        return [dict(row) for row in rows]
+
+
+def upsert_cluster_arm(
+    cluster_id: int,
+    alpha: float = 1.0,
+    beta: float = 1.0,
+    article_count: int = 0,
+    label: str = "",
+) -> None:
+    """Insert or update a cluster arm."""
+    now = datetime.now(UTC).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO cluster_arms (cluster_id, alpha, beta, article_count, label, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(cluster_id) DO UPDATE SET
+                alpha = excluded.alpha,
+                beta = excluded.beta,
+                article_count = excluded.article_count,
+                label = CASE WHEN excluded.label != '' THEN excluded.label ELSE cluster_arms.label END,
+                updated_at = excluded.updated_at""",
+            (cluster_id, alpha, beta, article_count, label, now),
+        )
+
+
+def update_arm_reward(cluster_id: int, success: bool) -> None:
+    """Update Thompson Sampling arm after user action."""
+    now = datetime.now(UTC).isoformat()
+    with get_connection() as conn:
+        if success:
+            conn.execute(
+                "UPDATE cluster_arms SET alpha = alpha + 1, updated_at = ? WHERE cluster_id = ?",
+                (now, cluster_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE cluster_arms SET beta = beta + 1, updated_at = ? WHERE cluster_id = ?",
+                (now, cluster_id),
+            )
+
+
+def log_action(article_id: str, action: str, cluster_id: int | None = None) -> None:
+    """Log a user action."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO action_logs (article_id, action, cluster_id) VALUES (?, ?, ?)",
+            (article_id, action, cluster_id),
+        )
+
+
+def get_action_logs(limit: int = 100) -> list[dict]:
+    """Get recent action logs."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM action_logs ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]

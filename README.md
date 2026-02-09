@@ -3,7 +3,7 @@
 > **Note**: This project is currently under development and not yet released. APIs and features may change without notice.
 
 <p align="center">
-  <img src="docs/logo.png" alt="BrainStream Logo" width="200">
+  <img src="docs/icon/icon.svg" alt="BrainStream Logo" width="200">
 </p>
 
 <p align="center">
@@ -29,26 +29,22 @@
 
 You can ask an LLM anything -- but only if you know what to ask. BrainStream solves the **"unknown unknowns" problem**: it surfaces technologies and trends you didn't even know to look for.
 
-### Two Directions of Discovery
+### Topology-Based Serendipity
 
-BrainStream accelerates discovery in two complementary directions:
+BrainStream uses **information space topology** to naturally generate serendipity without requiring user profiles or personalization:
 
-**Direction A: Known -> Unknown** (Breaking filter bubbles)
-- You're an expert in Lambda, but did you know WASM runtimes are reshaping serverless?
-- Co-occurrence analysis identifies emerging technologies near your stack -- no LLM needed, accuracy grows with data.
+- **Dense clusters** represent well-covered topics -- articles your peers are already reading
+- **Sparse regions** at cluster boundaries reveal emerging connections between fields
+- **Thompson Sampling** automatically balances exploration of new topics vs exploitation of known interests
 
-**Direction B: Unknown -> Known** (Accelerating understanding)
-- A WASM article appears in your feed -- BrainStream explains how it connects to your Lambda experience.
-- AI-powered context anchoring ties new information to what you already know.
-
-> A single user can be Direction A in one domain (expert) and Direction B in another (learner). BrainStream serves both.
+> No cold-start problem. No filter bubbles. The structure of information itself guides discovery.
 
 ### Key Features
 
-- **Discovery acceleration**: Trending technologies in your field + personalized tech connections
+- **Serendipity by design**: Topology-based discovery surfaces unexpected connections between technology domains
 - **Multi-source aggregation**: AWS, GCP, OpenAI, Anthropic, GitHub Releases, GitHub OSS
 - **AI-powered analysis**: Uses your existing Claude Code CLI subscription (on-demand, no background costs)
-- **Personalized feed**: Relevance scoring based on your tech stack, domains, roles, and goals
+- **Primary source detection**: Distinguishes official vendor announcements from secondary coverage
 - **Local-first**: Your data stays on your machine
 - **Plugin architecture**: Easy to add new data sources
 
@@ -60,22 +56,12 @@ BrainStream accelerates discovery in two complementary directions:
 pip install brainstream
 ```
 
-### Setup
-
-```bash
-# Interactive setup wizard
-brainstream setup
-
-# Start the server (opens browser automatically)
-brainstream open
-```
-
 ### Basic Commands
 
 ```bash
-brainstream open          # Start server and open dashboard
-brainstream fetch         # Manually fetch new articles
-brainstream status        # Show collection statistics
+brainstream serve         # Start the API server
+brainstream fetch         # Fetch new articles from all sources
+brainstream status        # Show articles, clusters, and topology info
 brainstream sources       # List available data sources
 ```
 
@@ -87,12 +73,13 @@ brainstream sources       # List available data sources
 ├──────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
 │  │   Plugins    │───>│  Processor   │───>│   Storage    │   │
-│  │  (RSS, API)  │    │  (LLM CLI)   │    │  (SQLite)    │   │
+│  │  (RSS, API)  │    │  (LLM CLI)   │    │(ChromaDB+SQL)│   │
 │  └──────────────┘    └──────────────┘    └──────────────┘   │
 │                              │                    │          │
 │                   ┌──────────┴──────────┐         │          │
-│                   │  Co-occurrence      │         │          │
-│                   │  Analysis (Dir. A)  │         │          │
+│                   │  Topology Engine    │         │          │
+│                   │  (HDBSCAN +        │         │          │
+│                   │  Thompson Sampling) │         │          │
 │                   └─────────────────────┘         │          │
 │                                                   ▼          │
 │                                           ┌──────────────┐   │

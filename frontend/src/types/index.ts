@@ -1,108 +1,57 @@
 // API response types
 
-export interface RelevanceScore {
-  total_score: number;
-  tag_score: number;
-  vendor_score: number;
-  content_score: number;
-  relevance_level: 'high' | 'medium' | 'low' | 'none';
-  matched_tags: string[];
-  matched_keywords: string[];
-}
-
 export interface Article {
   id: string;
-  source_id: string | null;
-  original_title: string;
-  original_content: string;
-  primary_source_url: string;
-  vendor: string;
-  summary_title: string | null;
-  summary_content: string | null;
-  diff_description: string | null;
-  explanation: string | null;
-  related_technologies: string[];
-  tech_stack_connection: string | null;
+  url: string;
+  title: string;
+  summary: string;
   tags: string[];
-  published_at: string | null;
+  vendor: string;
+  is_primary_source: boolean;
+  cluster_id: number;
+  published_at: string;
   collected_at: string;
-  processed_at: string | null;
-  llm_provider: string | null;
-  llm_model: string | null;
-}
-
-export interface ArticleWithRelevance extends Article {
-  relevance: RelevanceScore | null;
-}
-
-export interface TrendingTechnology {
-  name: string;
-  count: number;
-  related_to: string[];
-  sample_article_ids: string[];
+  source_plugin: string;
 }
 
 export interface FeedResponse {
-  items: ArticleWithRelevance[];
-  trending_technologies: TrendingTechnology[];
-  total: number;
-  page: number;
-  per_page: number;
-  pages: number;
-  tech_stack: string[];
-  preferred_vendors: string[];
-}
-
-export interface ArticleListResponse {
   items: Article[];
   total: number;
-  page: number;
-  per_page: number;
-  pages: number;
 }
 
-export interface UserProfile {
-  id: string;
-  tech_stack: string[];
-  preferred_vendors: string[];
-  domains: string[];
-  roles: string[];
-  goals: string[];
-  llm_provider: string;
-  created_at: string;
-  updated_at: string;
+export interface TopologyCluster {
+  cluster_id: number;
+  article_count: number;
+  density: number;
+  label: string;
+  alpha: number;
+  beta: number;
+  sample_titles: string[];
 }
 
-export interface ProfileUpdateRequest {
-  tech_stack?: string[];
-  preferred_vendors?: string[];
-  domains?: string[];
-  roles?: string[];
-  goals?: string[];
-  llm_provider?: string;
+export interface TopologyResponse {
+  total_articles: number;
+  clusters: TopologyCluster[];
 }
 
-export interface TechStackSuggestion {
+export interface Source {
   name: string;
-  category: string;
-  description: string;
-}
-
-export interface DataSource {
-  id: string;
-  plugin_name: string;
-  name: string;
+  display_name: string;
   vendor: string;
-  enabled: boolean;
-  last_fetched_at: string | null;
-  fetch_status: string;
-  error_message: string | null;
+  description: string;
+  source_type: string;
 }
 
-export interface CollectionResult {
-  source_name: string;
-  fetched: number;
-  new: number;
-  processed: number;
-  errors: string[];
+export interface CollectResponse {
+  total_fetched: number;
+  total_new: number;
+  total_processed: number;
+  duration_ms: number;
+  sources: {
+    name: string;
+    fetched: number;
+    new: number;
+    processed: number;
+    errors: string[];
+  }[];
 }

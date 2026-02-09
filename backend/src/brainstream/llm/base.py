@@ -1,4 +1,4 @@
-"""Base LLM provider interface for CLI-based LLM integration."""
+"""Base LLM provider interface for v2."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -14,60 +14,24 @@ class LLMProvider(str, Enum):
 
 
 @dataclass
-class SummaryResult:
-    """Result of article summarization."""
+class ProcessingResult:
+    """Result of LLM article processing for v2.
 
-    title: str
-    """AI-generated summary title."""
+    Simplified from v1: no relevance scoring, no personalization fields.
+    Added: is_primary_source, tech_domain for topology mapping.
+    """
 
-    content: str
-    """AI-generated summary content."""
-
-    diff_description: Optional[str] = None
-    """Description of what changed (if applicable)."""
-
-    explanation: Optional[str] = None
-    """Technical explanation of the update's impact."""
-
-    related_technologies: list[str] = field(default_factory=list)
-    """Technologies related to this article that the user should know about."""
-
-    tech_stack_connection: Optional[str] = None
-    """How this article connects to the user's tech stack."""
-
-
-@dataclass
-class TagResult:
-    """Result of tag extraction."""
+    summary: str
+    """AI-generated summary (2-3 sentences)."""
 
     tags: list[str] = field(default_factory=list)
     """Extracted tags/categories."""
 
-    vendor_services: list[str] = field(default_factory=list)
-    """Specific vendor services mentioned (e.g., 'Lambda', 'S3')."""
+    is_primary_source: bool = False
+    """Whether this is a primary source (vendor official announcement)."""
 
-
-@dataclass
-class RelevanceResult:
-    """Result of relevance analysis."""
-
-    score: float
-    """Relevance score from 0.0 to 1.0."""
-
-    matched_tech_stack: list[str] = field(default_factory=list)
-    """Tech stack items that matched."""
-
-    reason: str = ""
-    """Brief explanation of relevance."""
-
-
-@dataclass
-class ProcessingResult:
-    """Combined result of all LLM processing."""
-
-    summary: SummaryResult
-    tags: TagResult
-    relevance: Optional[RelevanceResult] = None
+    tech_domain: str = ""
+    """Primary technology domain (e.g., 'container-orchestration', 'serverless')."""
 
     # Metadata
     provider: str = ""
@@ -76,31 +40,20 @@ class ProcessingResult:
 
 
 class BaseLLMProvider(ABC):
-    """Abstract base class for LLM providers.
-
-    This class defines the interface for CLI-based LLM integration.
-    Implementations call external CLI tools (claude, gh copilot) via subprocess.
-    """
+    """Abstract base class for LLM providers."""
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Provider name (e.g., 'claude', 'copilot')."""
         ...
 
     @property
     @abstractmethod
     def display_name(self) -> str:
-        """Human-readable provider name."""
         ...
 
     @abstractmethod
     async def is_available(self) -> bool:
-        """Check if the CLI tool is installed and accessible.
-
-        Returns:
-            True if the CLI is available, False otherwise.
-        """
         ...
 
     @abstractmethod
@@ -108,72 +61,31 @@ class BaseLLMProvider(ABC):
         self,
         title: str,
         content: str,
+        url: str,
         vendor: str,
-        tech_stack: Optional[list[str]] = None,
-        domains: Optional[list[str]] = None,
-        roles: Optional[list[str]] = None,
-        goals: Optional[list[str]] = None,
     ) -> ProcessingResult:
-        """Analyze an article in a single LLM call.
-
-        Extracts summary, tags, and discovery fields in one unified prompt
-        to minimize token consumption.
-
-        Args:
-            title: Original article title.
-            content: Original article content.
-            vendor: Vendor name (e.g., 'AWS', 'GCP').
-            tech_stack: Optional user's tech stack for personalized analysis.
-            domains: Optional user's domains (e.g., ['serverless', 'mlops']).
-            roles: Optional user's roles (e.g., ['backend', 'infra']).
-            goals: Optional user's goals (e.g., ['tech-selection']).
-
-        Returns:
-            ProcessingResult with all processing results.
-        """
+        """Analyze an article: summarize, tag, detect primary source, classify domain."""
         ...
 
     async def process_article(
         self,
         title: str,
         content: str,
+        url: str,
         vendor: str,
-        tech_stack: Optional[list[str]] = None,
-        domains: Optional[list[str]] = None,
-        roles: Optional[list[str]] = None,
-        goals: Optional[list[str]] = None,
     ) -> ProcessingResult:
-        """Process an article through the LLM pipeline.
-
-        Delegates to analyze() which performs all extraction in a single call.
-
-        Args:
-            title: Original article title.
-            content: Original article content.
-            vendor: Vendor name.
-            tech_stack: Optional user's tech stack for relevance analysis.
-
-        Returns:
-            ProcessingResult with all processing results.
-        """
+        """Process an article through the LLM pipeline."""
         import time
 
         start_time = time.time()
-
-        result = await self.analyze(
-            title, content, vendor, tech_stack, domains, roles, goals
-        )
-
+        result = await self.analyze(title, content, url, vendor)
         result.processing_time_ms = int((time.time() - start_time) * 1000)
         result.provider = self.name
         result.model = "cli"
-
         return result
 
 
 class LLMError(Exception):
-    """Base exception for LLM errors."""
-
     def __init__(self, provider: str, message: str):
         self.provider = provider
         self.message = message
@@ -181,18 +93,12 @@ class LLMError(Exception):
 
 
 class CLINotFoundError(LLMError):
-    """CLI tool not found."""
-
     pass
 
 
 class ProcessingError(LLMError):
-    """Error during LLM processing."""
-
     pass
 
 
 class TimeoutError(LLMError):
-    """LLM processing timed out."""
-
     pass

@@ -1,7 +1,8 @@
-"""Claude Code CLI provider for LLM processing."""
+"""Claude Code CLI provider for v2 LLM processing."""
 
 import asyncio
 import json
+import re
 import shutil
 from typing import Optional
 
@@ -10,8 +11,6 @@ from brainstream.llm.base import (
     CLINotFoundError,
     ProcessingError,
     ProcessingResult,
-    SummaryResult,
-    TagResult,
     TimeoutError,
 )
 
@@ -19,20 +18,11 @@ from brainstream.llm.base import (
 class ClaudeCodeProvider(BaseLLMProvider):
     """LLM provider using Claude Code CLI.
 
-    This provider uses the `claude` command-line tool to process articles.
-    It leverages the user's existing Claude Max/Pro/API subscription.
-
-    Requirements:
-        - Claude Code CLI installed (`claude` command available)
-        - Valid Claude subscription (Max, Pro, or API)
+    v2: Simplified prompt focused on summarization, tagging,
+    primary source detection, and tech domain classification.
     """
 
     def __init__(self, timeout: int = 120):
-        """Initialize the provider.
-
-        Args:
-            timeout: Maximum time in seconds for CLI operations.
-        """
         self._timeout = timeout
         self._claude_path: Optional[str] = None
 
@@ -45,24 +35,10 @@ class ClaudeCodeProvider(BaseLLMProvider):
         return "Claude Code"
 
     async def is_available(self) -> bool:
-        """Check if claude CLI is installed."""
         self._claude_path = shutil.which("claude")
         return self._claude_path is not None
 
     async def _run_claude(self, prompt: str) -> str:
-        """Run claude CLI with a prompt.
-
-        Args:
-            prompt: The prompt to send to Claude.
-
-        Returns:
-            Claude's response text.
-
-        Raises:
-            CLINotFoundError: If claude CLI is not found.
-            TimeoutError: If the operation times out.
-            ProcessingError: If claude returns an error.
-        """
         if not await self.is_available():
             raise CLINotFoundError(
                 self.name,
@@ -72,7 +48,7 @@ class ClaudeCodeProvider(BaseLLMProvider):
         try:
             process = await asyncio.create_subprocess_exec(
                 self._claude_path,
-                "-p",  # Print mode (non-interactive)
+                "-p",
                 prompt,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -103,57 +79,32 @@ class ClaudeCodeProvider(BaseLLMProvider):
         self,
         title: str,
         content: str,
+        url: str,
         vendor: str,
-        tech_stack: Optional[list[str]] = None,
-        domains: Optional[list[str]] = None,
-        roles: Optional[list[str]] = None,
-        goals: Optional[list[str]] = None,
     ) -> ProcessingResult:
-        """Analyze an article in a single unified LLM call."""
-        tech_stack_str = ", ".join(tech_stack) if tech_stack else ""
-        has_profile = bool(tech_stack_str or domains or roles or goals)
-
-        # Build personalization section
-        personalization = ""
-        if has_profile:
-            profile_lines = []
-            if tech_stack_str:
-                profile_lines.append(f"Tech stack: {tech_stack_str}")
-            if domains:
-                profile_lines.append(f"Domains: {', '.join(domains)}")
-            if roles:
-                profile_lines.append(f"Roles: {', '.join(roles)}")
-            if goals:
-                profile_lines.append(f"Goals: {', '.join(goals)}")
-
-            profile_context = "\n".join(profile_lines)
-            personalization = f"""
-Engineer profile:
-{profile_context}
-
-In addition to the standard analysis, provide:
-- "related_technologies": Technologies related to this announcement that the engineer should explore, even if outside their current stack. Focus on technologies that are gaining relevance in this context.
-- "tech_stack_connection": A concrete explanation of how this announcement connects to the engineer's profile. Be specific about implications for their domains, roles, and goals."""
-
-        prompt = f"""You are a technical intelligence analyst helping engineers discover technology trends and understand vendor announcements.
-
-Analyze this {vendor} announcement and provide a comprehensive analysis.
+        """Analyze an article with v2 prompt."""
+        prompt = f"""You are a technical intelligence analyst. Analyze this technology article and extract structured metadata.
 
 Title: {title}
+URL: {url}
+Vendor: {vendor}
 
 Content:
 {content[:3000]}
-{personalization}
 
 Respond in this exact JSON format:
 {{
-    "title": "concise summary title (max 100 chars)",
-    "content": "2-3 sentence summary",
-    "diff_description": "what specifically changed or was added",
-    "explanation": "technical impact for developers",
-    "tags": ["general category tags like compute, database, security, ai"],
-    "vendor_services": ["specific {vendor} services mentioned"]{', "related_technologies": ["tech1", "tech2"], "tech_stack_connection": "how this connects to the engineers profile"' if has_profile else ''}
+    "summary": "2-3 sentence summary of what this announcement means for engineers",
+    "tags": ["category tags like compute, database, security, ai, devops, frontend, networking"],
+    "is_primary_source": true or false (true if this URL is an official vendor announcement/blog/changelog, false if it's a third-party blog/news article about the vendor),
+    "tech_domain": "primary technology domain (e.g., serverless, container-orchestration, machine-learning, database, security, networking, observability, ci-cd, frontend, iac)"
 }}
+
+Rules:
+- is_primary_source should be true for URLs from official vendor domains (e.g., aws.amazon.com, cloud.google.com, openai.com, github.blog, docs.anthropic.com)
+- tech_domain should be a single hyphenated keyword describing the main technology area
+- tags should be 2-5 general category labels
+- summary should be concise and actionable for engineers
 
 Respond with ONLY the JSON, no other text."""
 
@@ -162,49 +113,30 @@ Respond with ONLY the JSON, no other text."""
         try:
             data = self._extract_json(response)
 
-            summary = SummaryResult(
-                title=data.get("title", title),
-                content=data.get("content", content[:200]),
-                diff_description=data.get("diff_description"),
-                explanation=data.get("explanation"),
-                related_technologies=data.get("related_technologies", []),
-                tech_stack_connection=data.get("tech_stack_connection"),
-            )
-
-            tags = TagResult(
+            return ProcessingResult(
+                summary=data.get("summary", content[:200]),
                 tags=data.get("tags", []),
-                vendor_services=data.get("vendor_services", []),
+                is_primary_source=data.get("is_primary_source", False),
+                tech_domain=data.get("tech_domain", ""),
             )
-
-            return ProcessingResult(summary=summary, tags=tags)
 
         except Exception:
-            # Fallback: minimal result
-            summary = SummaryResult(
-                title=title,
-                content=response[:500] if response else content[:200],
+            return ProcessingResult(
+                summary=content[:200] if content else title,
+                tags=[vendor.lower()],
+                is_primary_source=False,
+                tech_domain="",
             )
-            tags = TagResult(tags=[vendor.lower()])
-            return ProcessingResult(summary=summary, tags=tags)
 
     def _extract_json(self, text: str) -> dict:
-        """Extract JSON from response text.
-
-        Handles cases where the response includes markdown code blocks,
-        leading/trailing text, or other non-JSON content.
-        """
-        import re
-
-        # Strip whitespace
+        """Extract JSON from response text."""
         text = text.strip()
 
-        # Try direct JSON parse first
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             pass
 
-        # Try to extract from code blocks
         code_block_patterns = [
             r"```json\s*(.*?)\s*```",
             r"```\s*(.*?)\s*```",
@@ -218,7 +150,6 @@ Respond with ONLY the JSON, no other text."""
                 except (json.JSONDecodeError, IndexError):
                     continue
 
-        # Try to find a JSON object by matching balanced braces
         brace_depth = 0
         start_idx = None
         for i, ch in enumerate(text):

@@ -1,368 +1,141 @@
-"""Article API endpoints."""
+"""Article detail and action endpoints."""
 
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-from brainstream.core.database import get_db
-from brainstream.models.article import Article, UserProfile
-from brainstream.schemas.article import (
-    ArticleListResponse,
-    ArticleResponse,
-    ArticleWithRelevanceResponse,
-    FeedResponse,
-    RelevanceScoreResponse,
-    TrendingTechnologyResponse,
-)
-from brainstream.services.cooccurrence import CoOccurrenceService
-from brainstream.services.relevance import RelevanceService
+from brainstream.services.feed import FeedSelector
+from brainstream.services.topology import TopologyEngine
 
-router = APIRouter(prefix="/articles", tags=["articles"])
+router = APIRouter(tags=["articles"])
 
 
-@router.get("", response_model=ArticleListResponse)
-async def list_articles(
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=20, ge=1, le=100),
-    vendor: Optional[str] = None,
-    processed_only: bool = False,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-    db: AsyncSession = Depends(get_db),
-) -> ArticleListResponse:
-    """List articles with pagination and filtering.
+class ArticleResponse(BaseModel):
+    id: str
+    url: str
+    title: str
+    summary: str
+    tags: list[str]
+    vendor: str
+    is_primary_source: bool
+    cluster_id: int
+    published_at: str
+    collected_at: str
+    source_plugin: str
+    tech_domain: str
 
-    Args:
-        page: Page number (1-indexed)
-        per_page: Number of items per page
-        vendor: Filter by vendor (e.g., 'AWS', 'GCP')
-        processed_only: Only return processed articles
-        date_from: Filter articles published after this date
-        date_to: Filter articles published before this date
 
-    Returns:
-        Paginated list of articles
-    """
-    # Build query
-    query = select(Article)
+class ActionRequest(BaseModel):
+    action: str  # 'click', 'bookmark', 'skip'
 
-    # Apply filters
-    if vendor:
-        query = query.where(Article.vendor == vendor)
 
-    if processed_only:
-        query = query.where(Article.processed_at.isnot(None))
+class ActionResponse(BaseModel):
+    success: bool
+    message: str
 
-    if date_from:
-        query = query.where(Article.published_at >= date_from)
 
-    if date_to:
-        query = query.where(Article.published_at <= date_to)
+class TopologyCluster(BaseModel):
+    cluster_id: int
+    article_count: int
+    density: float
+    label: str
+    alpha: float
+    beta: float
+    sample_titles: list[str]
 
-    # Count total
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
 
-    # Apply pagination
-    query = query.order_by(Article.published_at.desc().nullsfirst())
-    query = query.offset((page - 1) * per_page).limit(per_page)
+class TopologyResponse(BaseModel):
+    total_articles: int
+    clusters: list[TopologyCluster]
 
-    # Execute query
-    result = await db.execute(query)
-    articles = result.scalars().all()
 
-    # Calculate pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 1
+@router.get("/articles/{article_id}", response_model=ArticleResponse)
+async def get_article(article_id: str):
+    """Get article details."""
+    topology = TopologyEngine()
+    article = topology.get_article(article_id)
 
-    return ArticleListResponse(
-        items=[ArticleResponse.model_validate(a) for a in articles],
-        total=total,
-        page=page,
-        per_page=per_page,
-        pages=pages,
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    tags_str = article.get("tags", "")
+    tags = [t.strip() for t in tags_str.split(",") if t.strip()] if tags_str else []
+
+    return ArticleResponse(
+        id=article["id"],
+        url=article.get("url", ""),
+        title=article.get("original_title", ""),
+        summary=article.get("summary", ""),
+        tags=tags,
+        vendor=article.get("vendor", ""),
+        is_primary_source=bool(article.get("is_primary_source", False)),
+        cluster_id=article.get("cluster_id", -1),
+        published_at=article.get("published_at", ""),
+        collected_at=article.get("collected_at", ""),
+        source_plugin=article.get("source_plugin", ""),
+        tech_domain=article.get("tech_domain", ""),
     )
 
 
-# IMPORTANT: Specific routes must come BEFORE the catch-all /{article_id} route
+@router.post("/articles/{article_id}/action", response_model=ActionResponse)
+async def record_action(article_id: str, request: ActionRequest):
+    """Record a user action (click, bookmark, skip) for Thompson Sampling."""
+    if request.action not in ("click", "bookmark", "skip"):
+        raise HTTPException(status_code=400, detail="Invalid action. Use: click, bookmark, skip")
 
+    selector = FeedSelector()
+    selector.record_action(article_id, request.action)
 
-@router.get("/feed", response_model=FeedResponse)
-async def get_personalized_feed(
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=20, ge=1, le=100),
-    min_relevance: float = Query(default=0.0, ge=0.0, le=1.0),
-    sort_by: str = Query(default="relevance", pattern="^(relevance|date)$"),
-    vendor: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-) -> FeedResponse:
-    """Get personalized feed based on user's tech stack.
-
-    Articles are scored for relevance based on the user's registered
-    tech stack and preferred vendors. High-relevance articles appear first.
-
-    Args:
-        page: Page number (1-indexed)
-        per_page: Number of items per page
-        min_relevance: Minimum relevance score to include (0.0 to 1.0)
-        sort_by: Sort order - "relevance" (default) or "date"
-        vendor: Optional vendor filter
-
-    Returns:
-        Personalized feed with relevance scores
-    """
-    # Get user profile
-    profile_result = await db.execute(select(UserProfile).limit(1))
-    profile = profile_result.scalar_one_or_none()
-
-    tech_stack = profile.tech_stack if profile else []
-    preferred_vendors = profile.preferred_vendors if profile else []
-
-    # Build query
-    query = select(Article)
-
-    if vendor:
-        query = query.where(Article.vendor == vendor)
-
-    # Get total count before pagination
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total_db = total_result.scalar() or 0
-
-    # Fetch all articles (we need to score them all for proper sorting)
-    # In production, this should be optimized with caching or pre-computed scores
-    query = query.order_by(Article.published_at.desc().nullsfirst())
-    result = await db.execute(query)
-    all_articles = result.scalars().all()
-
-    # Initialize relevance service
-    relevance_service = RelevanceService(
-        tech_stack=tech_stack,
-        preferred_vendors=preferred_vendors,
+    return ActionResponse(
+        success=True,
+        message=f"Action '{request.action}' recorded for article {article_id}",
     )
 
-    # Score and filter articles
-    if sort_by == "relevance":
-        scored_articles = relevance_service.prioritize_feed(
-            all_articles, high_relevance_first=True
-        )
-    else:
-        scored_articles = relevance_service.prioritize_feed(
-            all_articles, high_relevance_first=False
-        )
 
-    # Filter by minimum relevance
-    if min_relevance > 0:
-        scored_articles = [
-            (a, s) for a, s in scored_articles if s.total_score >= min_relevance
-        ]
+@router.get("/topology", response_model=TopologyResponse)
+async def get_topology():
+    """Get information space topology (clusters and their properties)."""
+    topology = TopologyEngine()
+    clusters = topology.get_topology_info()
 
-    total = len(scored_articles)
-    pages = (total + per_page - 1) // per_page if total > 0 else 1
-
-    # Paginate
-    start_idx = (page - 1) * per_page
-    end_idx = start_idx + per_page
-    page_articles = scored_articles[start_idx:end_idx]
-
-    # Build response
-    items = []
-    for article, score in page_articles:
-        article_response = ArticleWithRelevanceResponse.model_validate(article)
-        article_response.relevance = RelevanceScoreResponse(
-            total_score=score.total_score,
-            tag_score=score.tag_score,
-            vendor_score=score.vendor_score,
-            content_score=score.content_score,
-            relevance_level=score.relevance_level,
-            matched_tags=score.matched_tags,
-            matched_keywords=score.matched_keywords,
-        )
-        items.append(article_response)
-
-    # Co-occurrence analysis (Phase 2: Direction A)
-    trending_technologies: list[TrendingTechnologyResponse] = []
-    if tech_stack:
-        cooccurrence_service = CoOccurrenceService(tech_stack=tech_stack)
-        trending = cooccurrence_service.analyze(list(all_articles))
-        trending_technologies = [
-            TrendingTechnologyResponse(
-                name=t.name,
-                count=t.count,
-                related_to=t.related_to,
-                sample_article_ids=t.sample_article_ids,
+    return TopologyResponse(
+        total_articles=topology.get_total_articles(),
+        clusters=[
+            TopologyCluster(
+                cluster_id=c.cluster_id,
+                article_count=c.article_count,
+                density=c.density,
+                label=c.label,
+                alpha=c.alpha,
+                beta=c.beta,
+                sample_titles=c.sample_titles,
             )
-            for t in trending
-        ]
-
-    return FeedResponse(
-        items=items,
-        trending_technologies=trending_technologies,
-        total=total,
-        page=page,
-        per_page=per_page,
-        pages=pages,
-        tech_stack=tech_stack,
-        preferred_vendors=preferred_vendors,
+            for c in clusters
+        ],
     )
 
 
-@router.get("/vendor/{vendor}", response_model=ArticleListResponse)
-async def list_articles_by_vendor(
-    vendor: str,
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-) -> ArticleListResponse:
-    """List articles for a specific vendor.
+@router.post("/collect")
+async def trigger_collection():
+    """Manually trigger article collection from all sources."""
+    from brainstream.services.collector import collect_all
 
-    Args:
-        vendor: Vendor name (e.g., 'AWS', 'GCP')
-        page: Page number
-        per_page: Items per page
+    summary = await collect_all()
 
-    Returns:
-        Paginated list of articles
-    """
-    return await list_articles(
-        page=page,
-        per_page=per_page,
-        vendor=vendor,
-        db=db,
-    )
-
-
-# Catch-all routes with path parameters must come LAST
-
-
-@router.get("/{article_id}", response_model=ArticleResponse)
-async def get_article(
-    article_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> ArticleResponse:
-    """Get a single article by ID.
-
-    Args:
-        article_id: Article UUID
-
-    Returns:
-        Article details
-
-    Raises:
-        HTTPException: If article not found
-    """
-    query = select(Article).where(Article.id == article_id)
-    result = await db.execute(query)
-    article = result.scalar_one_or_none()
-
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    return ArticleResponse.model_validate(article)
-
-
-@router.get("/{article_id}/relevance", response_model=RelevanceScoreResponse)
-async def get_article_relevance(
-    article_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> RelevanceScoreResponse:
-    """Get relevance score for a specific article.
-
-    Args:
-        article_id: Article UUID
-
-    Returns:
-        Relevance score breakdown
-
-    Raises:
-        HTTPException: If article not found
-    """
-    # Get article
-    query = select(Article).where(Article.id == article_id)
-    result = await db.execute(query)
-    article = result.scalar_one_or_none()
-
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    # Get user profile
-    profile_result = await db.execute(select(UserProfile).limit(1))
-    profile = profile_result.scalar_one_or_none()
-
-    tech_stack = profile.tech_stack if profile else []
-    preferred_vendors = profile.preferred_vendors if profile else []
-
-    # Calculate relevance
-    relevance_service = RelevanceService(
-        tech_stack=tech_stack,
-        preferred_vendors=preferred_vendors,
-    )
-    score = relevance_service.calculate_score(article)
-
-    return RelevanceScoreResponse(
-        total_score=score.total_score,
-        tag_score=score.tag_score,
-        vendor_score=score.vendor_score,
-        content_score=score.content_score,
-        relevance_level=score.relevance_level,
-        matched_tags=score.matched_tags,
-        matched_keywords=score.matched_keywords,
-    )
-
-
-@router.post("/{article_id}/process", response_model=ArticleResponse)
-async def process_article_endpoint(
-    article_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> ArticleResponse:
-    """Process a single article with LLM on demand.
-
-    Generates summary title, content, diff description, and impact explanation.
-
-    Args:
-        article_id: Article UUID
-
-    Returns:
-        Updated article with AI-generated fields
-
-    Raises:
-        HTTPException: If article not found or processing fails
-    """
-    query = select(Article).where(Article.id == article_id)
-    result = await db.execute(query)
-    article = result.scalar_one_or_none()
-
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    if article.processed_at is not None:
-        return ArticleResponse.model_validate(article)
-
-    # Get user profile for personalization
-    profile_result = await db.execute(select(UserProfile).limit(1))
-    profile = profile_result.scalar_one_or_none()
-    tech_stack = profile.tech_stack if profile else []
-
-    from brainstream.services.processor import ArticleProcessor
-
-    processor = ArticleProcessor(
-        tech_stack=tech_stack,
-        domains=profile.domains if profile else [],
-        roles=profile.roles if profile else [],
-        goals=profile.goals if profile else [],
-    )
-    success = await processor.process_existing_article(article)
-
-    if not success:
-        raise HTTPException(
-            status_code=503,
-            detail="LLM processing unavailable. Ensure Claude Code CLI is installed.",
-        )
-
-    await db.commit()
-    await db.refresh(article)
-
-    return ArticleResponse.model_validate(article)
+    return {
+        "total_fetched": summary.total_fetched,
+        "total_new": summary.total_new,
+        "total_processed": summary.total_processed,
+        "duration_ms": summary.duration_ms,
+        "sources": [
+            {
+                "name": s.source_name,
+                "fetched": s.fetched,
+                "new": s.new,
+                "processed": s.processed,
+                "errors": s.errors,
+            }
+            for s in summary.sources
+        ],
+    }

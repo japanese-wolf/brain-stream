@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { Feed } from './pages/Feed';
-import { Settings } from './pages/Settings';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -21,7 +20,6 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<Feed />} />
-            <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>
       </BrowserRouter>

@@ -34,108 +34,51 @@ async function fetchApi<T>(
   return response.json();
 }
 
-// Articles API
-export const articlesApi = {
+export const feedApi = {
   getFeed: (params: {
-    page?: number;
-    per_page?: number;
-    min_relevance?: number;
-    sort_by?: 'relevance' | 'date';
+    limit?: number;
+    offset?: number;
     vendor?: string;
+    primary_only?: boolean;
   } = {}) => {
     const searchParams = new URLSearchParams();
-    if (params.page) searchParams.set('page', params.page.toString());
-    if (params.per_page) searchParams.set('per_page', params.per_page.toString());
-    if (params.min_relevance) searchParams.set('min_relevance', params.min_relevance.toString());
-    if (params.sort_by) searchParams.set('sort_by', params.sort_by);
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.offset) searchParams.set('offset', params.offset.toString());
     if (params.vendor) searchParams.set('vendor', params.vendor);
+    if (params.primary_only) searchParams.set('primary_only', 'true');
 
     const query = searchParams.toString();
     return fetchApi<import('../types').FeedResponse>(
-      `/articles/feed${query ? `?${query}` : ''}`
+      `/feed${query ? `?${query}` : ''}`
     );
   },
 
-  getList: (params: {
-    page?: number;
-    per_page?: number;
-    vendor?: string;
-    processed_only?: boolean;
-  } = {}) => {
-    const searchParams = new URLSearchParams();
-    if (params.page) searchParams.set('page', params.page.toString());
-    if (params.per_page) searchParams.set('per_page', params.per_page.toString());
-    if (params.vendor) searchParams.set('vendor', params.vendor);
-    if (params.processed_only) searchParams.set('processed_only', 'true');
-
-    const query = searchParams.toString();
-    return fetchApi<import('../types').ArticleListResponse>(
-      `/articles${query ? `?${query}` : ''}`
-    );
-  },
-
-  getById: (id: string) => {
+  getArticle: (id: string) => {
     return fetchApi<import('../types').Article>(`/articles/${id}`);
   },
 
-  getRelevance: (id: string) => {
-    return fetchApi<import('../types').RelevanceScore>(`/articles/${id}/relevance`);
-  },
-
-  process: (id: string) => {
-    return fetchApi<import('../types').Article>(`/articles/${id}/process`, {
-      method: 'POST',
-    });
-  },
-};
-
-// Profile API
-export const profileApi = {
-  get: () => {
-    return fetchApi<import('../types').UserProfile>('/profile');
-  },
-
-  update: (data: import('../types').ProfileUpdateRequest) => {
-    return fetchApi<import('../types').UserProfile>('/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  addTechStack: (items: string[]) => {
-    return fetchApi<import('../types').UserProfile>('/profile/tech-stack', {
-      method: 'POST',
-      body: JSON.stringify(items),
-    });
-  },
-
-  removeTechStackItem: (item: string) => {
-    return fetchApi<import('../types').UserProfile>(`/profile/tech-stack/${encodeURIComponent(item)}`, {
-      method: 'DELETE',
-    });
-  },
-
-  getSuggestions: () => {
-    return fetchApi<Record<string, import('../types').TechStackSuggestion[]>>('/profile/suggestions');
-  },
-
-  getVendors: () => {
-    return fetchApi<string[]>('/profile/vendors');
-  },
-};
-
-// Sources API
-export const sourcesApi = {
-  getList: () => {
-    return fetchApi<import('../types').DataSource[]>('/sources');
-  },
-
-  fetch: (sourceName?: string) => {
-    const endpoint = sourceName ? `/sources/${sourceName}/fetch` : '/sources/fetch';
-    return fetchApi<import('../types').CollectionResult | import('../types').CollectionResult[]>(
-      endpoint,
-      { method: 'POST' }
+  recordAction: (articleId: string, action: 'click' | 'bookmark' | 'skip') => {
+    return fetchApi<{ success: boolean; message: string }>(
+      `/articles/${articleId}/action`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ action }),
+      }
     );
+  },
+
+  getTopology: () => {
+    return fetchApi<import('../types').TopologyResponse>('/topology');
+  },
+
+  getSources: () => {
+    return fetchApi<{ sources: import('../types').Source[] }>('/sources');
+  },
+
+  collect: () => {
+    return fetchApi<import('../types').CollectResponse>('/collect', {
+      method: 'POST',
+    });
   },
 };
 

@@ -1,88 +1,50 @@
-"""FastAPI application entry point."""
+"""FastAPI application for BrainStream."""
 
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
-from brainstream import __version__
 from brainstream.api.v1.router import router as api_router
 from brainstream.core.config import settings
-from brainstream.core.database import close_db, init_db
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from brainstream.core.database import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
+    """Application startup and shutdown."""
     # Startup
-    logger.info(f"Starting BrainStream v{__version__}")
-    await init_db()
-
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+    settings.ensure_data_dir()
+    init_db()
     yield
-
-    # Shutdown
-    await close_db()
-    logger.info("BrainStream shutdown complete")
+    # Shutdown (nothing to clean up)
 
 
 app = FastAPI(
-    title="BrainStream",
-    description="Intelligence hub for cloud and AI updates",
-    version=__version__,
+    title="BrainStream API",
+    description="Topology-based serendipity discovery for engineers",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API routes
+# Include API router
 app.include_router(api_router)
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "version": __version__,
-    }
-
-
-@app.get("/")
-async def root():
-    """Root endpoint - returns API info or serves frontend."""
-    # Check if frontend build exists
-    frontend_path = Path(__file__).parent.parent.parent.parent / "frontend" / "dist" / "index.html"
-    if frontend_path.exists():
-        return FileResponse(frontend_path)
-
-    # Return API info
-    return {
-        "name": "BrainStream API",
-        "version": __version__,
-        "docs": "/docs",
-        "health": "/health",
-    }
-
-
-# Serve static frontend files if they exist
-frontend_dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
-if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+async def health():
+    return {"status": "ok", "version": "2.0.0"}

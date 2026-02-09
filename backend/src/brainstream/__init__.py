@@ -1,3 +1,3 @@
-"""BrainStream - Intelligence hub for cloud and AI updates."""
+"""BrainStream - Topology-based serendipity discovery for engineers."""
 
-__version__ = "0.1.0"
+__version__ = "2.0.0"

@@ -8,6 +8,12 @@ docs/REQUIREMENTS.md
 # Operational issues
 docs/ops/issues/
 
+# Design documents
+docs/design/
+
+# Research papers
+docs/papers/
+
 # Python
 __pycache__/
 *.py[cod]

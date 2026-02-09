@@ -24,13 +24,7 @@ class Settings(BaseSettings):
 
     # Server
     host: str = "127.0.0.1"
-    port: int = 3000
-
-    # Database
-    database_url: str = Field(
-        default="sqlite+aiosqlite:///~/.brainstream/brainstream.db",
-        description="Database connection URL",
-    )
+    port: int = 3001
 
     # Data directory
     data_dir: Path = Field(
@@ -38,23 +32,37 @@ class Settings(BaseSettings):
         description="Directory for storing application data",
     )
 
+    # ChromaDB
+    chroma_persist_dir: Path = Field(
+        default=Path.home() / ".brainstream" / "chroma",
+        description="ChromaDB persistence directory",
+    )
+
+    # SQLite (state management)
+    state_db_path: Path = Field(
+        default=Path.home() / ".brainstream" / "state.db",
+        description="SQLite database for Thompson Sampling state and action logs",
+    )
+
+    # Embedding
+    embedding_model: str = "all-MiniLM-L6-v2"
+
+    # Clustering
+    hdbscan_min_cluster_size: int = 5
+    hdbscan_min_samples: int = 3
+
     # LLM
     llm_provider: Literal["claude", "copilot"] = "claude"
-    llm_timeout: int = 120  # seconds
+    llm_timeout: int = 120
 
-    def get_database_path(self) -> Path:
-        """Get the actual database file path."""
-        if "sqlite" in self.database_url:
-            # Extract path from SQLite URL
-            url = self.database_url.replace("sqlite+aiosqlite:///", "")
-            path = Path(url).expanduser()
-            path.parent.mkdir(parents=True, exist_ok=True)
-            return path
-        return self.data_dir / "brainstream.db"
+    # Feed
+    feed_default_limit: int = 20
+    serendipity_slots: int = 2
 
     def ensure_data_dir(self) -> Path:
         """Ensure data directory exists and return it."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.chroma_persist_dir.mkdir(parents=True, exist_ok=True)
         return self.data_dir
 
 
