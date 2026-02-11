@@ -1,0 +1,828 @@
+{
+  "sources": [
+
+    {"_comment": "=== Cloud Providers ==="},
+
+    {
+      "id": "aws-whatsnew",
+      "name": "AWS What's New",
+      "urls": [
+        "https://aws.amazon.com/about-aws/whats-new/recent/feed/",
+        "https://aws.amazon.com/blogs/aws/feed/"
+      ],
+      "type": "rss",
+      "topics": ["AWS", "cloud"],
+      "source_class": "primary",
+      "domains": ["aws.amazon.com"]
+    },
+    {
+      "id": "gcp-release-notes",
+      "name": "GCP Release Notes",
+      "urls": [
+        "https://docs.cloud.google.com/feeds/gcp-release-notes.xml",
+        "https://cloud.google.com/feeds/gcp-release-notes.xml"
+      ],
+      "type": "rss",
+      "topics": ["GCP", "cloud"],
+      "source_class": "primary",
+      "domains": ["cloud.google.com", "docs.cloud.google.com"]
+    },
+    {
+      "id": "gcp-blog",
+      "name": "Google Cloud Blog",
+      "urls": [
+        "https://cloud.google.com/blog/feed"
+      ],
+      "type": "rss",
+      "topics": ["GCP", "cloud"],
+      "source_class": "primary",
+      "domains": ["cloud.google.com"]
+    },
+    {
+      "id": "azure-updates",
+      "name": "Azure Updates",
+      "urls": [
+        "https://azure.microsoft.com/en-us/updates/feed/",
+        "https://azurecomcdn.azureedge.net/en-us/updates/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Azure", "cloud"],
+      "source_class": "primary",
+      "domains": ["azure.microsoft.com"]
+    },
+    {
+      "id": "cloudflare-blog",
+      "name": "Cloudflare Blog",
+      "urls": [
+        "https://blog.cloudflare.com/rss/"
+      ],
+      "type": "rss",
+      "topics": ["Cloudflare", "cloud", "security", "web"],
+      "source_class": "primary",
+      "domains": ["blog.cloudflare.com"]
+    },
+
+    {"_comment": "=== AI / ML ==="},
+
+    {
+      "id": "openai-blog",
+      "name": "OpenAI Blog",
+      "urls": [
+        "https://openai.com/blog/rss.xml",
+        "https://openai.com/index/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["OpenAI", "AI・ML"],
+      "source_class": "primary",
+      "domains": ["openai.com"]
+    },
+    {
+      "id": "anthropic-news",
+      "name": "Anthropic Release Notes",
+      "urls": [
+        "https://platform.claude.com/docs/en/release-notes/overview",
+        "https://docs.anthropic.com/en/release-notes/overview"
+      ],
+      "type": "scrape",
+      "topics": ["Anthropic", "AI・ML"],
+      "source_class": "primary",
+      "domains": ["anthropic.com", "platform.claude.com"]
+    },
+    {
+      "id": "anthropic-blog",
+      "name": "Anthropic Blog",
+      "urls": [
+        "https://www.anthropic.com/research/feed.xml",
+        "https://www.anthropic.com/news/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Anthropic", "AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["anthropic.com", "www.anthropic.com"]
+    },
+    {
+      "id": "google-ai-blog",
+      "name": "Google AI Blog",
+      "urls": [
+        "https://blog.google/technology/ai/rss/",
+        "https://blog.research.google/feeds/posts/default"
+      ],
+      "type": "rss",
+      "topics": ["Google AI", "AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["blog.google", "blog.research.google", "ai.google"]
+    },
+    {
+      "id": "huggingface-blog",
+      "name": "Hugging Face Blog",
+      "urls": [
+        "https://huggingface.co/blog/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Hugging Face", "AI・ML", "NLP"],
+      "source_class": "primary",
+      "domains": ["huggingface.co"]
+    },
+    {
+      "id": "meta-ai-blog",
+      "name": "Meta AI Blog",
+      "urls": [
+        "https://ai.meta.com/blog/rss/",
+        "https://engineering.fb.com/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Meta", "AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["ai.meta.com", "engineering.fb.com"]
+    },
+    {
+      "id": "nvidia-blog",
+      "name": "NVIDIA Technical Blog",
+      "urls": [
+        "https://developer.nvidia.com/blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["NVIDIA", "AI・ML", "GPU"],
+      "source_class": "primary",
+      "domains": ["developer.nvidia.com"]
+    },
+
+    {"_comment": "=== Research / Academic ==="},
+
+    {
+      "id": "arxiv-cs-ai",
+      "name": "arXiv CS.AI — Artificial Intelligence",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.AI",
+        "https://export.arxiv.org/rss/cs.AI"
+      ],
+      "type": "rss",
+      "topics": ["AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-cl",
+      "name": "arXiv CS.CL — Computation and Language",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.CL",
+        "https://export.arxiv.org/rss/cs.CL"
+      ],
+      "type": "rss",
+      "topics": ["NLP", "AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-lg",
+      "name": "arXiv CS.LG — Machine Learning",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.LG",
+        "https://export.arxiv.org/rss/cs.LG"
+      ],
+      "type": "rss",
+      "topics": ["AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-se",
+      "name": "arXiv CS.SE — Software Engineering",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.SE",
+        "https://export.arxiv.org/rss/cs.SE"
+      ],
+      "type": "rss",
+      "topics": ["software-engineering", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-cr",
+      "name": "arXiv CS.CR — Cryptography and Security",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.CR",
+        "https://export.arxiv.org/rss/cs.CR"
+      ],
+      "type": "rss",
+      "topics": ["security", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-dc",
+      "name": "arXiv CS.DC — Distributed Computing",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.DC",
+        "https://export.arxiv.org/rss/cs.DC"
+      ],
+      "type": "rss",
+      "topics": ["distributed-systems", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "arxiv-cs-pl",
+      "name": "arXiv CS.PL — Programming Languages",
+      "urls": [
+        "https://rss.arxiv.org/rss/cs.PL",
+        "https://export.arxiv.org/rss/cs.PL"
+      ],
+      "type": "rss",
+      "topics": ["programming-languages", "research"],
+      "source_class": "primary",
+      "domains": ["arxiv.org"]
+    },
+    {
+      "id": "microsoft-research",
+      "name": "Microsoft Research Blog",
+      "urls": [
+        "https://www.microsoft.com/en-us/research/feed/"
+      ],
+      "type": "rss",
+      "topics": ["research", "AI・ML"],
+      "source_class": "primary",
+      "domains": ["www.microsoft.com", "microsoft.com"]
+    },
+    {
+      "id": "papers-with-code",
+      "name": "Papers with Code — Latest",
+      "urls": [
+        "https://paperswithcode.com/latest"
+      ],
+      "type": "scrape",
+      "topics": ["AI・ML", "research"],
+      "source_class": "primary",
+      "domains": ["paperswithcode.com"]
+    },
+
+    {"_comment": "=== Developer Platforms & Tools ==="},
+
+    {
+      "id": "github-blog",
+      "name": "GitHub Blog",
+      "urls": [
+        "https://github.blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["GitHub", "DevOps"],
+      "source_class": "primary",
+      "domains": ["github.blog"]
+    },
+    {
+      "id": "github-changelog",
+      "name": "GitHub Changelog",
+      "urls": [
+        "https://github.blog/changelog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["GitHub", "DevOps"],
+      "source_class": "primary",
+      "domains": ["github.blog"]
+    },
+    {
+      "id": "gitlab-blog",
+      "name": "GitLab Blog",
+      "urls": [
+        "https://about.gitlab.com/atom.xml"
+      ],
+      "type": "rss",
+      "topics": ["GitLab", "DevOps", "CI/CD"],
+      "source_class": "primary",
+      "domains": ["about.gitlab.com"]
+    },
+    {
+      "id": "docker-blog",
+      "name": "Docker Blog",
+      "urls": [
+        "https://www.docker.com/blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Docker", "container", "DevOps"],
+      "source_class": "primary",
+      "domains": ["www.docker.com"]
+    },
+    {
+      "id": "hashicorp-blog",
+      "name": "HashiCorp Blog",
+      "urls": [
+        "https://www.hashicorp.com/blog/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Terraform", "HashiCorp", "DevOps", "infrastructure"],
+      "source_class": "primary",
+      "domains": ["www.hashicorp.com"]
+    },
+    {
+      "id": "vercel-blog",
+      "name": "Vercel Blog",
+      "urls": [
+        "https://vercel.com/atom",
+        "https://vercel.com/blog/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["Vercel", "frontend", "Next.js"],
+      "source_class": "primary",
+      "domains": ["vercel.com"]
+    },
+    {
+      "id": "jetbrains-blog",
+      "name": "JetBrains Blog",
+      "urls": [
+        "https://blog.jetbrains.com/feed/"
+      ],
+      "type": "rss",
+      "topics": ["JetBrains", "IDE", "developer-tools"],
+      "source_class": "primary",
+      "domains": ["blog.jetbrains.com"]
+    },
+
+    {"_comment": "=== Programming Languages ==="},
+
+    {
+      "id": "rust-blog",
+      "name": "Rust Blog",
+      "urls": [
+        "https://blog.rust-lang.org/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Rust", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["blog.rust-lang.org"]
+    },
+    {
+      "id": "go-blog",
+      "name": "Go Blog",
+      "urls": [
+        "https://go.dev/blog/feed.atom"
+      ],
+      "type": "rss",
+      "topics": ["Go", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["go.dev"]
+    },
+    {
+      "id": "python-insider",
+      "name": "Python Insider",
+      "urls": [
+        "https://blog.python.org/feeds/posts/default"
+      ],
+      "type": "rss",
+      "topics": ["Python", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["blog.python.org"]
+    },
+    {
+      "id": "nodejs-blog",
+      "name": "Node.js Blog",
+      "urls": [
+        "https://nodejs.org/en/feed/blog.xml"
+      ],
+      "type": "rss",
+      "topics": ["Node.js", "JavaScript", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["nodejs.org"]
+    },
+    {
+      "id": "typescript-blog",
+      "name": "TypeScript Blog",
+      "urls": [
+        "https://devblogs.microsoft.com/typescript/feed/"
+      ],
+      "type": "rss",
+      "topics": ["TypeScript", "JavaScript", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["devblogs.microsoft.com"]
+    },
+    {
+      "id": "kotlin-blog",
+      "name": "Kotlin Blog",
+      "urls": [
+        "https://blog.jetbrains.com/kotlin/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Kotlin", "JVM", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["blog.jetbrains.com"]
+    },
+    {
+      "id": "swift-blog",
+      "name": "Swift.org Blog",
+      "urls": [
+        "https://www.swift.org/atom.xml"
+      ],
+      "type": "rss",
+      "topics": ["Swift", "iOS", "Apple", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["www.swift.org", "swift.org"]
+    },
+    {
+      "id": "java-inside",
+      "name": "Inside Java",
+      "urls": [
+        "https://inside.java/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Java", "JVM", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["inside.java"]
+    },
+    {
+      "id": "dotnet-blog",
+      "name": ".NET Blog",
+      "urls": [
+        "https://devblogs.microsoft.com/dotnet/feed/"
+      ],
+      "type": "rss",
+      "topics": [".NET", "C#", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["devblogs.microsoft.com"]
+    },
+    {
+      "id": "zig-news",
+      "name": "Zig News",
+      "urls": [
+        "https://ziglang.org/news/index.xml"
+      ],
+      "type": "rss",
+      "topics": ["Zig", "programming-languages"],
+      "source_class": "primary",
+      "domains": ["ziglang.org"]
+    },
+
+    {"_comment": "=== Infrastructure / Cloud Native ==="},
+
+    {
+      "id": "kubernetes-blog",
+      "name": "Kubernetes Blog",
+      "urls": [
+        "https://kubernetes.io/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["Kubernetes", "container", "cloud-native"],
+      "source_class": "primary",
+      "domains": ["kubernetes.io"]
+    },
+    {
+      "id": "cncf-blog",
+      "name": "CNCF Blog",
+      "urls": [
+        "https://www.cncf.io/blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["CNCF", "cloud-native", "Kubernetes"],
+      "source_class": "primary",
+      "domains": ["www.cncf.io"]
+    },
+    {
+      "id": "grafana-blog",
+      "name": "Grafana Blog",
+      "urls": [
+        "https://grafana.com/blog/index.xml"
+      ],
+      "type": "rss",
+      "topics": ["Grafana", "observability", "DevOps"],
+      "source_class": "primary",
+      "domains": ["grafana.com"]
+    },
+    {
+      "id": "datadog-blog",
+      "name": "Datadog Blog",
+      "urls": [
+        "https://www.datadoghq.com/blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Datadog", "observability", "DevOps"],
+      "source_class": "primary",
+      "domains": ["www.datadoghq.com"]
+    },
+    {
+      "id": "nginx-blog",
+      "name": "NGINX Blog",
+      "urls": [
+        "https://www.nginx.com/feed/"
+      ],
+      "type": "rss",
+      "topics": ["NGINX", "infrastructure", "web"],
+      "source_class": "primary",
+      "domains": ["www.nginx.com"]
+    },
+
+    {"_comment": "=== Security ==="},
+
+    {
+      "id": "github-security",
+      "name": "GitHub Security",
+      "urls": [
+        "https://github.blog/tag/security/feed/"
+      ],
+      "type": "rss",
+      "topics": ["security", "GitHub"],
+      "source_class": "primary",
+      "domains": ["github.blog"]
+    },
+    {
+      "id": "nist-nvd",
+      "name": "NIST NVD — CVE Feed",
+      "urls": [
+        "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["security", "CVE"],
+      "source_class": "primary",
+      "domains": ["nvd.nist.gov"]
+    },
+    {
+      "id": "krebs-on-security",
+      "name": "Krebs on Security",
+      "urls": [
+        "https://krebsonsecurity.com/feed/"
+      ],
+      "type": "rss",
+      "topics": ["security"],
+      "source_class": "secondary",
+      "domains": ["krebsonsecurity.com"]
+    },
+    {
+      "id": "google-project-zero",
+      "name": "Google Project Zero",
+      "urls": [
+        "https://googleprojectzero.blogspot.com/feeds/posts/default"
+      ],
+      "type": "rss",
+      "topics": ["security", "research"],
+      "source_class": "primary",
+      "domains": ["googleprojectzero.blogspot.com"]
+    },
+
+    {"_comment": "=== Databases & Storage ==="},
+
+    {
+      "id": "postgresql-news",
+      "name": "PostgreSQL News",
+      "urls": [
+        "https://www.postgresql.org/news.rss"
+      ],
+      "type": "rss",
+      "topics": ["PostgreSQL", "database"],
+      "source_class": "primary",
+      "domains": ["www.postgresql.org"]
+    },
+    {
+      "id": "redis-blog",
+      "name": "Redis Blog",
+      "urls": [
+        "https://redis.io/blog/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Redis", "database"],
+      "source_class": "primary",
+      "domains": ["redis.io"]
+    },
+    {
+      "id": "supabase-blog",
+      "name": "Supabase Blog",
+      "urls": [
+        "https://supabase.com/blog/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["Supabase", "database", "backend"],
+      "source_class": "primary",
+      "domains": ["supabase.com"]
+    },
+    {
+      "id": "mongodb-blog",
+      "name": "MongoDB Blog",
+      "urls": [
+        "https://www.mongodb.com/blog/rss"
+      ],
+      "type": "rss",
+      "topics": ["MongoDB", "database"],
+      "source_class": "primary",
+      "domains": ["www.mongodb.com"]
+    },
+
+    {"_comment": "=== Web Platform / Frontend ==="},
+
+    {
+      "id": "chrome-developers",
+      "name": "Chrome Developers Blog",
+      "urls": [
+        "https://developer.chrome.com/blog/feed.xml",
+        "https://blog.chromium.org/feeds/posts/default"
+      ],
+      "type": "rss",
+      "topics": ["Chrome", "web", "frontend"],
+      "source_class": "primary",
+      "domains": ["developer.chrome.com", "blog.chromium.org"]
+    },
+    {
+      "id": "web-dev",
+      "name": "web.dev",
+      "urls": [
+        "https://web.dev/feed.xml"
+      ],
+      "type": "rss",
+      "topics": ["web", "frontend", "performance"],
+      "source_class": "primary",
+      "domains": ["web.dev"]
+    },
+    {
+      "id": "mozilla-hacks",
+      "name": "Mozilla Hacks",
+      "urls": [
+        "https://hacks.mozilla.org/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Firefox", "web", "frontend"],
+      "source_class": "primary",
+      "domains": ["hacks.mozilla.org"]
+    },
+    {
+      "id": "react-blog",
+      "name": "React Blog",
+      "urls": [
+        "https://react.dev/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["React", "frontend", "JavaScript"],
+      "source_class": "primary",
+      "domains": ["react.dev"]
+    },
+    {
+      "id": "nextjs-blog",
+      "name": "Next.js Blog",
+      "urls": [
+        "https://nextjs.org/blog/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["Next.js", "frontend", "React"],
+      "source_class": "primary",
+      "domains": ["nextjs.org"]
+    },
+    {
+      "id": "webkit-blog",
+      "name": "WebKit Blog",
+      "urls": [
+        "https://webkit.org/feed/"
+      ],
+      "type": "rss",
+      "topics": ["Safari", "web", "frontend", "Apple"],
+      "source_class": "primary",
+      "domains": ["webkit.org"]
+    },
+    {
+      "id": "deno-blog",
+      "name": "Deno Blog",
+      "urls": [
+        "https://deno.com/blog/rss.xml",
+        "https://deno.com/feed"
+      ],
+      "type": "rss",
+      "topics": ["Deno", "JavaScript", "TypeScript"],
+      "source_class": "primary",
+      "domains": ["deno.com"]
+    },
+
+    {"_comment": "=== Standards / Specifications ==="},
+
+    {
+      "id": "w3c-news",
+      "name": "W3C News",
+      "urls": [
+        "https://www.w3.org/blog/news/feed/"
+      ],
+      "type": "rss",
+      "topics": ["W3C", "web", "standards"],
+      "source_class": "primary",
+      "domains": ["www.w3.org"]
+    },
+    {
+      "id": "ietf-rfc",
+      "name": "IETF New RFCs",
+      "urls": [
+        "https://www.rfc-editor.org/rfcrss.xml"
+      ],
+      "type": "rss",
+      "topics": ["IETF", "standards", "networking"],
+      "source_class": "primary",
+      "domains": ["www.rfc-editor.org"]
+    },
+
+    {"_comment": "=== Tech News / Community ==="},
+
+    {
+      "id": "hackernews-best",
+      "name": "Hacker News — Best Stories",
+      "urls": [
+        "https://hnrss.org/best"
+      ],
+      "type": "rss",
+      "topics": ["tech-news"],
+      "source_class": "secondary",
+      "domains": ["news.ycombinator.com"]
+    },
+    {
+      "id": "techcrunch",
+      "name": "TechCrunch",
+      "urls": [
+        "https://techcrunch.com/feed/"
+      ],
+      "type": "rss",
+      "topics": ["tech-news", "startup"],
+      "source_class": "secondary",
+      "domains": ["techcrunch.com"]
+    },
+    {
+      "id": "the-verge-tech",
+      "name": "The Verge — Tech",
+      "urls": [
+        "https://www.theverge.com/rss/index.xml"
+      ],
+      "type": "rss",
+      "topics": ["tech-news"],
+      "source_class": "secondary",
+      "domains": ["www.theverge.com"]
+    },
+    {
+      "id": "ars-technica",
+      "name": "Ars Technica",
+      "urls": [
+        "https://feeds.arstechnica.com/arstechnica/index"
+      ],
+      "type": "rss",
+      "topics": ["tech-news"],
+      "source_class": "secondary",
+      "domains": ["arstechnica.com"]
+    },
+    {
+      "id": "lobsters",
+      "name": "Lobsters",
+      "urls": [
+        "https://lobste.rs/rss"
+      ],
+      "type": "rss",
+      "topics": ["tech-news", "programming-languages"],
+      "source_class": "secondary",
+      "domains": ["lobste.rs"]
+    },
+
+    {"_comment": "=== Engineering Blogs (Major Companies) ==="},
+
+    {
+      "id": "netflix-tech-blog",
+      "name": "Netflix Tech Blog",
+      "urls": [
+        "https://netflixtechblog.com/feed"
+      ],
+      "type": "rss",
+      "topics": ["backend", "distributed-systems", "infrastructure"],
+      "source_class": "secondary",
+      "domains": ["netflixtechblog.com"]
+    },
+    {
+      "id": "uber-engineering",
+      "name": "Uber Engineering Blog",
+      "urls": [
+        "https://www.uber.com/blog/engineering/rss/"
+      ],
+      "type": "rss",
+      "topics": ["backend", "distributed-systems", "infrastructure"],
+      "source_class": "secondary",
+      "domains": ["www.uber.com", "eng.uber.com"]
+    },
+    {
+      "id": "stripe-engineering",
+      "name": "Stripe Engineering Blog",
+      "urls": [
+        "https://stripe.com/blog/feed.rss"
+      ],
+      "type": "rss",
+      "topics": ["backend", "infrastructure", "fintech"],
+      "source_class": "secondary",
+      "domains": ["stripe.com"]
+    },
+    {
+      "id": "discord-engineering",
+      "name": "Discord Engineering Blog",
+      "urls": [
+        "https://discord.com/blog/rss.xml"
+      ],
+      "type": "rss",
+      "topics": ["backend", "infrastructure", "Rust"],
+      "source_class": "secondary",
+      "domains": ["discord.com"]
+    },
+    {
+      "id": "linear-blog",
+      "name": "Linear Blog",
+      "urls": [
+        "https://linear.app/blog/rss"
+      ],
+      "type": "rss",
+      "topics": ["developer-tools", "frontend", "product"],
+      "source_class": "secondary",
+      "domains": ["linear.app"]
+    }
+  ]
+}

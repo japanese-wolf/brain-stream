@@ -1,0 +1,25 @@
+# Claude
+.claude/
+!.claude-plugin/
+
+# Documentation (non-public)
+docs/draft.md
+docs/REQUIREMENTS.md
+docs/ops/issues/
+docs/design/
+docs/papers/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/

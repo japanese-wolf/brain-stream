@@ -1,0 +1,10 @@
+{
+  "name": "brainstream",
+  "version": "0.1.0",
+  "description": "Tech trend discovery agent — collects, summarizes, and clusters tech articles from multiple sources",
+  "author": {
+    "name": "BrainStream"
+  },
+  "repository": "https://github.com/japanese-wolf/brain-stream",
+  "license": "AGPL-3.0"
+}
